@@ -2,6 +2,7 @@ package com.xkp.attendance.entity;
 
 import lombok.Data;
 
+import javax.persistence.*;
 import java.util.Date;
 
 /**
@@ -11,13 +12,17 @@ import java.util.Date;
  * @create: 2019-05-19 10:55
  **/
 @Data
+@Table(name="clockIn")
 public class ClockIn {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "SELECT LAST_INSERT_ID()")
     private Integer id;
 
     /**
      * 员工考勤编号
      */
+    @Column(name="empNo")
     private String empNo;
 
     /**
@@ -28,11 +33,22 @@ public class ClockIn {
     /**
      * 打卡时间
      */
+    @Column(name = "clockInDate")
     private Date clockInDate;
 
+    /**
+     * 关联的原始数据id
+     */
+    @Column(name = "originalId")
     private Integer originalId;
 
+    @Column(name = "createTime")
     private Date createTime;
+
+    /**
+     * 打卡月份
+     */
+    private Integer month;
 
 
 }

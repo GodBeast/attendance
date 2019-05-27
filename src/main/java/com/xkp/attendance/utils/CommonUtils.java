@@ -1,4 +1,4 @@
-package com.xkp.attendance;
+package com.xkp.attendance.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

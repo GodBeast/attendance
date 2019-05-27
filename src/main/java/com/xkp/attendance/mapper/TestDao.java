@@ -1,4 +1,4 @@
-package com.xkp.attendance.dao;
+package com.xkp.attendance.mapper;
 
 /**
  * @program: attendance
