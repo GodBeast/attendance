@@ -39,5 +39,8 @@ public class StatisticsVO {
     //加班时长
     private BigDecimal overtime;
 
+    //是否补贴
+    private Boolean subsidy;
+
 
 }

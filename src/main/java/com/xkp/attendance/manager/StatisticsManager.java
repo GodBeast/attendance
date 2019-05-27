@@ -29,20 +29,24 @@ public class StatisticsManager {
     @Autowired
     private EmployeeMapper employeeMapper;
 
-    public List<Map<String, Object>> checkClockInOfOneDay(){
+    public Map<Date, Map<String, StatisticsVO>> checkClockInOfOneDay(){
         List<Date> dates = getEveryDayByMonth(2019, 5);
         Map<Date, Map<String, Optional<ClockIn>>> starMap = new HashMap<>(dates.size());
 
         Map<Date, Map<String, Optional<ClockIn>>> endMap = new HashMap<>(dates.size());
 
         List<Employee> employeeList = employeeMapper.selectAll();
+        //时间区间内，员工每天的考勤状态
+        Map<Date, Map<String, StatisticsVO>> map = new HashMap<>(dates.size());
         //循环每一天
         dates.stream().forEach(x -> {
             Map<String, Optional<ClockIn>> employStartTime = getEmployStartTime(x);
+
             //查出一天中，所有人的上班打卡数据
             //starMap.put(x, getEmployStartTime(x, 1));
-
+            Map<String, StatisticsVO> empStatistics = new HashMap<>(employeeList.size());
             for (Employee employee:employeeList) {
+
                 StatisticsVO statisticsVO = new StatisticsVO();
                 String empNo = employee.getUserCode().toString();
                 statisticsVO.setClockInDate(x)
@@ -59,10 +63,17 @@ public class StatisticsManager {
                         employee.getType(),
                         statisticsVO.getClockInStartDate() == null?x:statisticsVO.getClockInStartDate()));
 
+                /**
+                 * 计算员工考勤状态，加班工时等
+                 */
+                getClockInStatus(statisticsVO);
+                empStatistics.put(employee.getUsername(), statisticsVO);
+
             }
+            map.put(x, empStatistics);
 
         });
-        return null;
+        return map;
     }
 
     /**
@@ -72,10 +83,15 @@ public class StatisticsManager {
     private void getClockInStatus(StatisticsVO statisticsVO){
         //白领的情况
         if(statisticsVO.getType() == 2){
+            /**
+             * 如果上班时间或下班时间不为空，则计算工时
+             */
             if(statisticsVO.getClockInStartDate() != null && statisticsVO.getClockInEndDate() != null){
                 Date whiteCollarFlexTime1 = getWhiteCollarFlexTime1(statisticsVO.getClockInDate());
                 Date whiteCollarFlexTime2 = getWhiteCollarFlexTime2(statisticsVO.getClockInDate());
-                //
+                /**
+                 * 如果上班时间为8：30之前，则下班时间 - 8：30 计算工时
+                 */
                 if(statisticsVO.getClockInStartDate().before(whiteCollarFlexTime1)){
                     BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), getWhiteCollarFlexTime1(statisticsVO.getClockInDate()));
 
@@ -86,7 +102,9 @@ public class StatisticsManager {
                         statisticsVO.setClockInStatus(1);
                     }
                     statisticsVO.setOvertime(overTime);
-
+                /**
+                 * 如果上班时间为8：30- 9：30 之间，则下班时间减去上班时间 计算工时
+                 */
                 }else if(statisticsVO.getClockInStartDate().after(whiteCollarFlexTime1) && statisticsVO.getClockInStartDate().before(whiteCollarFlexTime2)){
                     BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), statisticsVO.getClockInEndDate());
 
@@ -97,7 +115,9 @@ public class StatisticsManager {
                         statisticsVO.setClockInStatus(0);
                     }
                     statisticsVO.setOvertime(overTime);
-
+                /**
+                 * 上班时间晚于9：30 则为迟到
+                 */
                 }else{
                     statisticsVO.setClockInStatus(2);
                     BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), statisticsVO.getClockInEndDate());
@@ -106,12 +126,69 @@ public class StatisticsManager {
                     statisticsVO.setOvertime(overTime);
 
                 }
+            /**
+             * 如果上班时间或下班时间为空，则为打卡异常，不计算当天工时；
+             */
             }else{
                 statisticsVO.setClockInStatus(1);
             }
-
+        /**
+         * 工人工时计算
+         */
         }else if(statisticsVO.getType() == 3){
-
+            if(statisticsVO.getClockInStartDate() == null || statisticsVO.getClockInEndDate() == null){
+                statisticsVO.setClockInStatus(1);
+                return;
+            }
+            //0点班
+            Date date1 = getWorkingTime1(statisticsVO.getClockInDate());
+            //8点班
+            Date date2 = getWorkingTime1(statisticsVO.getClockInDate());
+            //16点班
+            Date date3 = getWorkingTime1(statisticsVO.getClockInDate());
+            //20点班
+            Date date4 = getWorkingTime1(statisticsVO.getClockInDate());
+            /**
+             * 0点班，8点下班，考勤正常
+             */
+            if(statisticsVO.getClockInStartDate().after(getOneHourBefore(date1)) && statisticsVO.getClockInStartDate().before(date1)){
+                if(statisticsVO.getClockInStartDate().after(date2) && statisticsVO.getClockInStartDate().before(getOneHourAfter(date2))){
+                    statisticsVO.setClockInStatus(0)
+                            .setSubsidy(true);
+                }
+            /**
+             * 8点班，判断4点正常下班还是八点下班 （区分两班作息还是三班作息），并算上加班工时
+             */
+            }else if(statisticsVO.getClockInStartDate().after(getOneHourBefore(date2)) && statisticsVO.getClockInStartDate().before(date2)){
+                if(statisticsVO.getClockInStartDate().after(date3) && statisticsVO.getClockInStartDate().before(getOneHourAfter(date3))){
+                    statisticsVO.setClockInStatus(0);
+                }else if(statisticsVO.getClockInStartDate().after(date4) && statisticsVO.getClockInStartDate().before(getOneHourAfter(date4))){
+                    statisticsVO.setClockInStatus(0)
+                            .setOvertime(BigDecimal.valueOf(3.5));
+                }
+            /**
+             * 16点上班，0点正常下班则考勤正常
+             */
+            }else if(statisticsVO.getClockInStartDate().after(getOneHourBefore(date3)) && statisticsVO.getClockInStartDate().before(date3)){
+                if(statisticsVO.getClockInStartDate().after(getHourAfter(date3, 8)) && statisticsVO.getClockInStartDate().before(getHourAfter(date3, 9))){
+                    statisticsVO.setClockInStatus(0)
+                            .setSubsidy(true);
+                }
+            /**
+             * 20点上班为两班倒工作制，次日八点之后下班则为正常考勤
+             */
+            }else if(statisticsVO.getClockInStartDate().after(getOneHourBefore(date4)) && statisticsVO.getClockInStartDate().before(date4)){
+                if(statisticsVO.getClockInStartDate().after(getHourAfter(date4, 12)) && statisticsVO.getClockInStartDate().before(getHourAfter(date4, 13))){
+                    statisticsVO.setOvertime(BigDecimal.valueOf(4))
+                            .setClockInStatus(0)
+                            .setSubsidy(true);
+                }
+            /**
+             * 其他情况均算考勤异常，交由人工处理
+             */
+            }else{
+                statisticsVO.setClockInStatus(1);
+            }
         }
 
     }
@@ -209,6 +286,42 @@ public class StatisticsManager {
     private Date getWhiteCollarFlexTime4(Date date){
         String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 18:30:00");
         return DateUtil.parseDate(s1);
+    }
+
+    //工人上班时间点
+    private Date getWorkingTime1(Date date){
+        String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 00:00:00");
+        return DateUtil.parseDate(s1);
+    }
+    //工人上班时间点
+    private Date getWorkingTime2(Date date){
+        String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 08:00:00");
+        return DateUtil.parseDate(s1);
+    }
+    //工人上班时间点
+    private Date getWorkingTime3(Date date){
+        String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 16:00:00");
+        return DateUtil.parseDate(s1);
+    }
+    //工人上班时间点
+    private Date getWorkingTime4(Date date){
+        String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 20:00:00");
+        return DateUtil.parseDate(s1);
+    }
+
+    //获取前一个小时时间
+    private Date getOneHourBefore(Date date){
+        return DateUtil.addMins(date, -60);
+    }
+
+    //获取后一个小时时间
+    private Date getOneHourAfter(Date date){
+        return DateUtil.addMins(date, 60);
+    }
+
+    //获取后N个小时
+    private Date getHourAfter(Date date, Integer hour){
+        return DateUtil.addMins(date, 60*hour);
     }
 
     //获取上班工时
