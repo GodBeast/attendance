@@ -47,7 +47,7 @@ public class ClockInServiceImpl implements ClockInService{
             criteria.andEqualTo("empNo", empNo);
         }
         criteria.andGreaterThanOrEqualTo("clockInDate", date);
-        criteria.andLessThanOrEqualTo("clockInDate", DateUtil.getDateStart(date));
+        criteria.andLessThanOrEqualTo("clockInDate", DateUtil.getDateEnd(date));
         criteria.andEqualTo("type", type);
         return clockInMapper.selectByExample(example);
     }

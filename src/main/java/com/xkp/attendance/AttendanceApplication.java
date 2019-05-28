@@ -2,6 +2,7 @@ package com.xkp.attendance;
 
 import com.xkp.attendance.manager.ClockInManager;
 import com.xkp.attendance.manager.EmployeeManager;
+import com.xkp.attendance.manager.StatisticsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -21,11 +22,15 @@ public class AttendanceApplication implements CommandLineRunner {
     ClockInManager clockInManager;
     @Autowired
     EmployeeManager employeeManager;
+    @Autowired
+    StatisticsManager statisticsManager;
     @Override
     public void run(String... args) throws Exception {
         //解析基础数据
         //clockInManager.transfer();
         //解析员工类型
         //employeeManager.updateType();
+
+        statisticsManager.checkClockInOfOneDay();
     }
 }

@@ -397,7 +397,7 @@ public abstract class DateUtil {
 
 
     public static void main(String args[]){
-        System.out.println(DateUtil.addDays(new Date(), 1));
-        //DateUtil.dateSplit(DateUtil.parseDate("2019-03-26 00:00:00", FULL_FORMAT_PATTERN), DateUtil.parseDate("2019-04-25 00:00:00", FULL_FORMAT_PATTERN)).forEach(x -> System.out.println(DateUtil.formatDate(x)));
+        //System.out.println(DateUtil.addDays(new Date(), 1));
+        DateUtil.dateSplit(DateUtil.parseDate("2019-4-26 00:00:00", FULL_FORMAT_PATTERN), DateUtil.parseDate("2019-05-25 00:00:00", FULL_FORMAT_PATTERN)).forEach(x -> System.out.println(DateUtil.formatDate(x)));
     }
 }
