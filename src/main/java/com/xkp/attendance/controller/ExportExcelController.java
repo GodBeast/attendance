@@ -103,9 +103,9 @@ public class ExportExcelController {
             for (Map.Entry<String, Map<Employee, StatisticsVO>> mm : listMap.entrySet()) {
                 oneDayUserList = dateMap.get(mm.getKey());
                 if (CollectionUtils.isEmpty(oneDayUserList)) {
-                    m.put("clockInStatusName" + mm.getKey(), "无");
+                    m.put("clockInStatusName" + mm.getKey(), "缺勤");
                 } else {
-                    m.put("clockInStatusName" + mm.getKey(), "有有有");
+                    m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
                 }
             }
             rowList.add(m);
