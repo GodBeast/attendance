@@ -28,6 +28,6 @@
             <AppenderRef ref="Console" />
             <AppenderRef ref="File" />
         </Root>
-        <logger name="com.tripgeely" level="debug"/>
+        <logger name="com.xkp.attendance" level="debug"/>
     </Loggers>
 </Configuration>

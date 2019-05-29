@@ -13,7 +13,7 @@ import java.util.Map;
  * 测试类
  */
 public class TextMain {
-    public static void main(String[] args) throws Exception {
+//    public static void main(String[] args) throws Exception {
 ////        单级的表头
 //        Map<String,String> map=new HashMap<String,String>();
 //        map.put("登录名","u_login_id");
@@ -128,6 +128,6 @@ public class TextMain {
 //          List<List<Map<String,String>>> readexeclC=excelTool.getExcelMapVal("D://outExcel.xls",1);
 //          int count= excelTool.hasSheetCount("D://outExcel.xls");
 
-    }
+//    }
 
 }

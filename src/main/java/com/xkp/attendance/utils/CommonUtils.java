@@ -34,10 +34,10 @@ public class CommonUtils {
 
     }
 
-    public static void main(String[] args) throws ParseException {
-        String a = "ANOB2118061712345678901112";
-        System.out.println(CommonUtils.getClockInTime(a));
-        System.out.println(CommonUtils.paseDate("1806171234"));
-        System.out.println(new java.sql.Timestamp(CommonUtils.paseDate("1806171234").getTime()));
-    }
+//    public static void main(String[] args) throws ParseException {
+//        String a = "ANOB2118061712345678901112";
+//        System.out.println(CommonUtils.getClockInTime(a));
+//        System.out.println(CommonUtils.paseDate("1806171234"));
+//        System.out.println(new java.sql.Timestamp(CommonUtils.paseDate("1806171234").getTime()));
+//    }
 }
