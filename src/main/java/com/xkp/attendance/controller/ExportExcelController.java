@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -65,6 +66,12 @@ public class ExportExcelController {
 //        }
 //    }
 
+    /**
+     * 按照月份导出考勤记录 格式：201902
+     *
+     * @param date
+     * @param type 员工类型0:未知，1：管理员，2：办公室 ，3:工人
+     */
     @GetMapping(value = "/exportExcel/{date}/{type}")
     @ResponseBody
     public void exportFailureBillExcel1(@PathVariable(value = "date") Integer date,
@@ -94,6 +101,7 @@ public class ExportExcelController {
         List<AttendanceDataExcel> oneUserList;
         List<AttendanceDataExcel> oneDayUserList;
         List<Map<String, String>> rowList = new ArrayList<>();
+        BigDecimal allOverTime = new BigDecimal(0);
         for (Map.Entry<String, List<AttendanceDataExcel>> map : userMap.entrySet()) {
             Map m = new HashMap<String, String>();
             oneUserList = map.getValue();
@@ -106,8 +114,10 @@ public class ExportExcelController {
                     m.put("clockInStatusName" + mm.getKey(), "缺勤");
                 } else {
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
+                    allOverTime.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
                 }
             }
+            m.put("allOverTime", allOverTime);
             rowList.add(m);
             i++;
         }
@@ -127,21 +137,23 @@ public class ExportExcelController {
     private List<TitleEntity> getTitleList(Map<String, Map<Employee, StatisticsVO>> listMap, String title) {
         List<TitleEntity> titleList = new ArrayList<>();
         TitleEntity titleEntity0 = new TitleEntity("0", null, title, null);
-        TitleEntity titleEntity1 = new TitleEntity("1", "0", "编号", "");
-        TitleEntity titleEntity11 = new TitleEntity("1_1", "1", "NO", "no");
-        TitleEntity titleEntity2 = new TitleEntity("2", "0", "姓名", "");
-        TitleEntity titleEntity22 = new TitleEntity("2_1", "2", "name", "username");
         titleList.add(titleEntity0);
-        titleList.add(titleEntity1);
-        titleList.add(titleEntity11);
-        titleList.add(titleEntity2);
-        titleList.add(titleEntity22);
+        titleEntity0 = new TitleEntity("1", "0", "编号", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("1_1", "1", "NO", "no");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("2", "0", "姓名", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("2_1", "2", "name", "username");
+        titleList.add(titleEntity0);
         for (Map.Entry<String, Map<Employee, StatisticsVO>> m : listMap.entrySet()) {
             titleEntity0 = new TitleEntity(m.getKey(), "0", m.getKey(), "");
             titleList.add(titleEntity0);
             titleEntity0 = new TitleEntity(m.getKey() + "周几", m.getKey(), "周几", "clockInStatusName" + m.getKey());
             titleList.add(titleEntity0);
         }
+        titleEntity0 = new TitleEntity("3", "0", "总加班小时数", "allOverTime");
+        titleList.add(titleEntity0);
         return titleList;
     }
 
