@@ -6,7 +6,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 有关日期处理的工具类。
@@ -50,11 +49,12 @@ public abstract class DateUtil {
      */
 
     public static String getYear(Date date) {
-        return formatDate(date,"yyyy");
+        return formatDate(date, "yyyy");
     }
 
     /**
      * 获取月份
+     *
      * @return
      */
     public static String getMonth(Date date) {
@@ -315,6 +315,7 @@ public abstract class DateUtil {
 
     /**
      * 获取指定日期 0点时间
+     *
      * @param date
      * @return
      */
@@ -344,6 +345,7 @@ public abstract class DateUtil {
 
     /**
      * 获取当前时间N天前的时间（0点时间）
+     *
      * @param i
      * @return
      */
@@ -357,7 +359,6 @@ public abstract class DateUtil {
     }
 
     /**
-     *
      * @param dateTime
      * @return
      */
@@ -373,13 +374,14 @@ public abstract class DateUtil {
 
     /**
      * 获取两个日期之间的每一天
+     *
      * @param startDate
      * @param endDate
      * @return
      * @throws Exception
      */
     public static List<Date> dateSplit(Date startDate, Date endDate) {
-        if (!startDate.before(endDate)){
+        if (!startDate.before(endDate)) {
             return Collections.emptyList();
         }
 
@@ -389,16 +391,32 @@ public abstract class DateUtil {
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(startDate);
         for (int i = 1; i <= step; i++) {
-            dateList.add(new Date(dateList.get(i-1).getTime()
+            dateList.add(new Date(dateList.get(i - 1).getTime()
                     + (24 * 60 * 60 * 1000)));// 比上一天+1
         }
         return dateList;
     }
 
+    /**
+     * 实现给定某日期，判断是星期几
+     *
+     * @param date yyyyMMdd
+     * @return
+     */
+    public static String getWeekday(String date) {
+        SimpleDateFormat sd = new SimpleDateFormat("yyyyMMdd");
+        SimpleDateFormat sdw = new SimpleDateFormat("E");
+        Date d = null;
+        try {
+            d = sd.parse(date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return sdw.format(d);
+    }
 
 
-//    public static void main(String args[]){
-//        //System.out.println(DateUtil.addDays(new Date(), 1));
-//        DateUtil.dateSplit(DateUtil.parseDate("2019-4-26 00:00:00", FULL_FORMAT_PATTERN), DateUtil.parseDate("2019-05-25 00:00:00", FULL_FORMAT_PATTERN)).forEach(x -> System.out.println(DateUtil.formatDate(x)));
-//    }
+
+
+
 }

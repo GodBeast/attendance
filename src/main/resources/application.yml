@@ -7,7 +7,7 @@ spring:
     #监控统计拦截的filters
     driver-class-name: com.mysql.cj.jdbc.Driver
     #基本属性
-    url: jdbc:mysql://127.0.0.1:3306/attendance?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://127.0.0.1:3306/attendance?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: 123456
     #配置初始化大小/最小/最大
@@ -35,4 +35,4 @@ mybatis:
 multipart:
   max-file-size: 10MB #单个文件大小
   max-request-size: 200MB #总上传的数据大小
-  location-temp-url: /Users/xiaoli/tmp
+  location-temp-url: /Users/xiaoli/tmp/
