@@ -187,7 +187,7 @@ public class StatisticsManager {
                     if (overTime.compareTo(BigDecimal.ZERO) < 0) {
                         statisticsVO.setClockInStatus(3);
                     } else {
-                        statisticsVO.setClockInStatus(1);
+                        statisticsVO.setClockInStatus(0);
                     }
                     statisticsVO.setOvertime(overTime);
                     /**
@@ -239,34 +239,34 @@ public class StatisticsManager {
             /**
              * 0点班，8点下班，考勤正常
              */
-            if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date1)) && statisticsVO.getClockInStartDate().before(date1)) {
-                if (statisticsVO.getClockInStartDate().after(date2) && statisticsVO.getClockInStartDate().before(getOneHourAfter(date2))) {
+            if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date1)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date1, 1))) {
+                if (statisticsVO.getClockInStartDate().compareTo(date2) >= 0) {
                     statisticsVO.setClockInStatus(0)
                             .setSubsidy(true);
                 }
                 /**
                  * 8点班，判断4点正常下班还是八点下班 （区分两班作息还是三班作息），并算上加班工时
                  */
-            } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date2)) && statisticsVO.getClockInStartDate().before(date2)) {
-                if (statisticsVO.getClockInEndDate().after(date3) && statisticsVO.getClockInEndDate().before(getOneHourAfter(date3))) {
+            } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date2)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date2, 1))) {
+                if ((statisticsVO.getClockInEndDate().compareTo(date3) >= 0) && statisticsVO.getClockInEndDate().before(getOneHourAfter(date3))) {
                     statisticsVO.setClockInStatus(0);
-                } else if (statisticsVO.getClockInEndDate().after(date4) && statisticsVO.getClockInEndDate().before(getOneHourAfter(date4))) {
+                } else if (statisticsVO.getClockInEndDate().compareTo(date4) >= 0) {
                     statisticsVO.setClockInStatus(0)
                             .setOvertime(BigDecimal.valueOf(3.5));
                 }
                 /**
                  * 16点上班，0点正常下班则考勤正常
                  */
-            } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date3)) && statisticsVO.getClockInStartDate().before(date3)) {
-                if (statisticsVO.getClockInStartDate().after(getHourAfter(date3, 8)) && statisticsVO.getClockInStartDate().before(getHourAfter(date3, 9))) {
+            } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date3)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date3, 1))) {
+                if (statisticsVO.getClockInStartDate().compareTo(getHourAfter(date3, 8)) >= 0) {
                     statisticsVO.setClockInStatus(0)
                             .setSubsidy(true);
                 }
                 /**
                  * 20点上班为两班倒工作制，次日八点之后下班则为正常考勤
                  */
-            } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date4)) && statisticsVO.getClockInStartDate().before(date4)) {
-                if (statisticsVO.getClockInEndDate().after(getHourAfter(date4, 12)) && statisticsVO.getClockInEndDate().before(getHourAfter(date4, 13))) {
+            } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date4)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date4, 1))) {
+                if (statisticsVO.getClockInEndDate().compareTo(getHourAfter(date4, 12)) >= 0) {
                     statisticsVO.setOvertime(BigDecimal.valueOf(4))
                             .setClockInStatus(0)
                             .setSubsidy(true);

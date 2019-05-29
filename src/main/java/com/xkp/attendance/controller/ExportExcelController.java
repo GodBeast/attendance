@@ -103,15 +103,17 @@ public class ExportExcelController {
         List<AttendanceDataExcel> oneUserList;
         List<AttendanceDataExcel> oneDayUserList;
         List<Map<String, String>> rowList = new ArrayList<>();
-        // 总加班小时数
-        BigDecimal allOverTime = new BigDecimal(0);
-        // 平时加班
-        BigDecimal OT_normanl = new BigDecimal(0);
-        // 周末加班
-        BigDecimal OT_weekend = new BigDecimal(0);
-        // 节假日加班
-        BigDecimal OT_holiday = new BigDecimal(0);
         for (Map.Entry<String, List<AttendanceDataExcel>> map : userMap.entrySet()) {
+
+            // 总加班小时数
+            BigDecimal allOverTime = BigDecimal.ZERO;
+            // 平时加班
+            BigDecimal OT_normanl = BigDecimal.ZERO;
+            // 周末加班
+            BigDecimal OT_weekend = BigDecimal.ZERO;
+            // 节假日加班
+            BigDecimal OT_holiday = BigDecimal.ZERO;
+
             Map m = new HashMap<String, String>();
             oneUserList = map.getValue();
             m.put("no", i);
@@ -123,18 +125,18 @@ public class ExportExcelController {
                     m.put("clockInStatusName" + mm.getKey(), "缺勤");
                 } else {
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
-                    allOverTime.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                    allOverTime = allOverTime.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
 
                     // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
                     int n = APIHelper.holidayType(DateUtil.parseDate(mm.getKey()));
                     if (n == 0) {
-                        OT_normanl.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                        OT_normanl = OT_normanl.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
                     }
                     if (n == 1) {
-                        OT_weekend.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                        OT_weekend = OT_weekend.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
                     }
                     if (n == 2) {
-                        OT_holiday.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                        OT_holiday = OT_holiday.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
                     }
 
                 }
@@ -183,7 +185,7 @@ public class ExportExcelController {
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("4", "0", "平时加班", "");
         titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("4_1", "4", "OT_weekend", "OT_weekend");
+        titleEntity0 = new TitleEntity("4_1", "4", "OT_normanl", "OT_normanl");
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("5", "0", "周末加班", "");
         titleList.add(titleEntity0);
