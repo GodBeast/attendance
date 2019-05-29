@@ -72,23 +72,10 @@ public class ExportExcelController {
         logger.debug("开始导出月份[{}]的考勤记录", date);
         String title = date + "考勤记录";
 
-        //实体类（entity）数据 多级表头,数据如下:
-        //        登录名  姓名       aa
-        //                      角色    部门
-        List<TitleEntity> titleList = new ArrayList<>();
-        TitleEntity titleEntity0 = new TitleEntity("0", null, title, null);
-        TitleEntity titleEntity1 = new TitleEntity("1", "0", "编号", "");
-        TitleEntity titleEntity11 = new TitleEntity("1_1", "1", "NO", "no");
-        TitleEntity titleEntity2 = new TitleEntity("2", "0", "姓名", "");
-        TitleEntity titleEntity22 = new TitleEntity("2_1", "2", "name", "username");
-        titleList.add(titleEntity0);
-        titleList.add(titleEntity1);
-        titleList.add(titleEntity11);
-        titleList.add(titleEntity2);
-        titleList.add(titleEntity22);
-
         // 获取所有员工当月的考勤信息
         Map<String, Map<Employee, StatisticsVO>> stringMapMap = statisticsManager.checkClockInOfOneDay(date);
+
+
         // 排序
         Map<String, Map<Employee, StatisticsVO>> listMap = new LinkedHashMap<>();
         stringMapMap.entrySet().stream()
@@ -97,13 +84,9 @@ public class ExportExcelController {
 
         // 获取需要导出的数据
         List<AttendanceDataExcel> list = statisticsManager.getAttendanceDataExcel(listMap, type);
+        // 获取动态表头
+        List<TitleEntity> titleList = getTitleList(listMap, title);
 
-        for (Map.Entry<String, Map<Employee, StatisticsVO>> m : listMap.entrySet()) {
-            titleEntity0 = new TitleEntity(m.getKey(), "0", m.getKey(), "");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity(m.getKey() + "周几", m.getKey(), "周几", "clockInStatusName" + m.getKey());
-            titleList.add(titleEntity0);
-        }
         Map<String, List<AttendanceDataExcel>> userMap = list.stream().collect(Collectors.groupingBy(AttendanceDataExcel::getUserCode));
 
         //单级的 行内数据
@@ -132,6 +115,34 @@ public class ExportExcelController {
         ExcelTool excelTool = new ExcelTool(title, 20, 20);
         List<Column> titleData = excelTool.columnTransformer(titleList, "t_id", "t_pid", "t_content", "t_fielName", "0");
         excelTool.exportExcel(titleData, rowList, "/Users/xiaoli/tmp/" + title + ".xls", true, true);
+    }
+
+    /**
+     * 获取动态表头
+     *
+     * @param listMap
+     * @param title
+     * @return
+     */
+    private List<TitleEntity> getTitleList(Map<String, Map<Employee, StatisticsVO>> listMap, String title) {
+        List<TitleEntity> titleList = new ArrayList<>();
+        TitleEntity titleEntity0 = new TitleEntity("0", null, title, null);
+        TitleEntity titleEntity1 = new TitleEntity("1", "0", "编号", "");
+        TitleEntity titleEntity11 = new TitleEntity("1_1", "1", "NO", "no");
+        TitleEntity titleEntity2 = new TitleEntity("2", "0", "姓名", "");
+        TitleEntity titleEntity22 = new TitleEntity("2_1", "2", "name", "username");
+        titleList.add(titleEntity0);
+        titleList.add(titleEntity1);
+        titleList.add(titleEntity11);
+        titleList.add(titleEntity2);
+        titleList.add(titleEntity22);
+        for (Map.Entry<String, Map<Employee, StatisticsVO>> m : listMap.entrySet()) {
+            titleEntity0 = new TitleEntity(m.getKey(), "0", m.getKey(), "");
+            titleList.add(titleEntity0);
+            titleEntity0 = new TitleEntity(m.getKey() + "周几", m.getKey(), "周几", "clockInStatusName" + m.getKey());
+            titleList.add(titleEntity0);
+        }
+        return titleList;
     }
 
 
