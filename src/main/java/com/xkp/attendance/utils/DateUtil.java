@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public abstract class DateUtil {
 
     public static final String DEFAULT_PATTERN = "yyyyMMdd";
+    public static final String DEFAULT_PATTERN_MONTH = "yyyyMM";
 
     public static final String FULL_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss";
     /**
@@ -48,8 +49,8 @@ public abstract class DateUtil {
      * 返回当前年份
      */
 
-    public static String getYear() {
-        return formatDate("yyyy");
+    public static String getYear(Date date) {
+        return formatDate(date,"yyyy");
     }
 
     /**
@@ -396,8 +397,8 @@ public abstract class DateUtil {
 
 
 
-    public static void main(String args[]){
-        //System.out.println(DateUtil.addDays(new Date(), 1));
-        DateUtil.dateSplit(DateUtil.parseDate("2019-4-26 00:00:00", FULL_FORMAT_PATTERN), DateUtil.parseDate("2019-05-25 00:00:00", FULL_FORMAT_PATTERN)).forEach(x -> System.out.println(DateUtil.formatDate(x)));
-    }
+//    public static void main(String args[]){
+//        //System.out.println(DateUtil.addDays(new Date(), 1));
+//        DateUtil.dateSplit(DateUtil.parseDate("2019-4-26 00:00:00", FULL_FORMAT_PATTERN), DateUtil.parseDate("2019-05-25 00:00:00", FULL_FORMAT_PATTERN)).forEach(x -> System.out.println(DateUtil.formatDate(x)));
+//    }
 }

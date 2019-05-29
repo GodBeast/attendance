@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+    <Properties>
+        <Property name="logFile">/data/logs/attendance/attendance</Property>
+    </Properties>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout>
+                <pattern>%d %-5p [%t] %C{2} (%F:%L) - %m%n</pattern>
+            </PatternLayout>
+        </Console>
+        <!-- ${logFile}路径不要带.log结尾，在配置中指定.log，可以定制每日的日志文件格式 -->
+        <RollingFile name="File" fileName="${logFile}.log" append="true"
+                     filePattern="${logFile}_%d{yyyyMMdd}.log">
+            <PatternLayout>
+                <pattern>%d %-5p [%t] %C{2} (%F:%L) - %m%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <!-- 日志生成策略，可以同时支持时间和文件大小为单位，这里定义为一天一个文件，与filePattern配合使用 -->
+                <TimeBasedTriggeringPolicy modulate="true" interval="1" />
+            </Policies>
+            <!-- 最大文件数目，会自动删除旧文件 -->
+            <DefaultRolloverStrategy max="7"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="File" />
+        </Root>
+        <logger name="com.tripgeely" level="debug"/>
+    </Loggers>
+</Configuration>
