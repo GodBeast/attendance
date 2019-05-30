@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 
 /**
  * @program: attendance
@@ -26,4 +27,28 @@ public class Employee {
     private String username;
 
     private Integer type;
+
+    /**
+     * 薪资等级
+     */
+    private Integer payLevel;
+
+    private String fullName;
+
+    private String cnName;
+
+    private String costCenter;
+
+    /**
+     * 基本工资
+     */
+    private BigDecimal BasicWage;
+
+    /**
+     * 月薪
+     */
+    private BigDecimal salary;
+
+    private String cost;
+
 }

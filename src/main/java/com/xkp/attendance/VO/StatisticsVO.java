@@ -27,7 +27,7 @@ public class StatisticsVO {
     //打卡日期
     private Date clockInDate;
 
-    //考勤状态:0正常；1，缺卡，2：迟到 3:早退
+    //考勤状态:0正常；1，缺卡，2：迟到 3:早退 4：休（周末或节假日）
     private Integer clockInStatus;
 
     //上班打卡时间

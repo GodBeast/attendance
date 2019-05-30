@@ -1,24 +1,22 @@
 package com.xkp.attendance.manager;
 
+import com.sun.org.glassfish.external.statistics.Statistic;
 import com.xkp.attendance.VO.AttendanceDataExcel;
 import com.xkp.attendance.VO.StatisticsVO;
 import com.xkp.attendance.entity.ClockIn;
 import com.xkp.attendance.entity.Employee;
 import com.xkp.attendance.mapper.EmployeeMapper;
+import com.xkp.attendance.model.enums.ClockInStatusEnum;
+import com.xkp.attendance.model.enums.EmpTypeEnum;
+import com.xkp.attendance.model.enums.HolidayEnum;
 import com.xkp.attendance.service.ClockInService;
+import com.xkp.attendance.utils.APIHelper;
 import com.xkp.attendance.utils.DateUtil;
-import org.apache.poi.hssf.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -169,8 +167,18 @@ public class StatisticsManager {
      * @param statisticsVO
      */
     private void getClockInStatus(StatisticsVO statisticsVO) {
+        /**
+         * 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
+         */
+        int n = APIHelper.holidayType(statisticsVO.getClockInDate());
+        boolean isHoliday = false;
+
+        if(HolidayEnum.HOLIDAY.eq(n) || HolidayEnum.WEEKEND.eq(n)){
+            isHoliday = true;
+        }
+
         //白领的情况
-        if (statisticsVO.getType() == 2) {
+        if (EmpTypeEnum.WHITECOLLAR.eq(statisticsVO.getType())) {
             /**
              * 如果上班时间或下班时间不为空，则计算工时
              */
@@ -178,54 +186,68 @@ public class StatisticsManager {
                 Date whiteCollarFlexTime1 = getWhiteCollarFlexTime1(statisticsVO.getClockInDate());
                 Date whiteCollarFlexTime2 = getWhiteCollarFlexTime2(statisticsVO.getClockInDate());
                 /**
-                 * 如果上班时间为8：30之前，则下班时间 - 8：30 计算工时
+                 * 如果是节假日，直接计算上班时间为加班时间
                  */
-                if (statisticsVO.getClockInStartDate().before(whiteCollarFlexTime1)) {
-                    BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), getWhiteCollarFlexTime1(statisticsVO.getClockInDate()));
-
-                    BigDecimal overTime = hour.subtract(BigDecimal.valueOf(9));
-                    if (overTime.compareTo(BigDecimal.ZERO) < 0) {
-                        statisticsVO.setClockInStatus(3);
-                    } else {
-                        statisticsVO.setClockInStatus(0);
-                    }
-                    statisticsVO.setOvertime(overTime);
-                    /**
-                     * 如果上班时间为8：30- 9：30 之间，则下班时间减去上班时间 计算工时
-                     */
-                } else if (statisticsVO.getClockInStartDate().after(whiteCollarFlexTime1) && statisticsVO.getClockInStartDate().before(whiteCollarFlexTime2)) {
+                if(isHoliday){
                     BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), statisticsVO.getClockInEndDate());
-
-                    BigDecimal overTime = hour.subtract(BigDecimal.valueOf(9));
-                    if (overTime.compareTo(BigDecimal.ZERO) < 0) {
-                        statisticsVO.setClockInStatus(3);
-                    } else {
-                        statisticsVO.setClockInStatus(0);
-                    }
-                    statisticsVO.setOvertime(overTime);
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
+                            .setOvertime(hour);
+                }else{
                     /**
-                     * 上班时间晚于9：30 则为迟到
+                     * 如果上班时间为8：30之前，则下班时间 - 8：30 计算工时
                      */
-                } else {
-                    statisticsVO.setClockInStatus(2);
-                    BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), statisticsVO.getClockInEndDate());
+                    if (statisticsVO.getClockInStartDate().before(whiteCollarFlexTime1)) {
+                        BigDecimal hour = getWorkingHours(whiteCollarFlexTime1, statisticsVO.getClockInEndDate());
 
-                    BigDecimal overTime = hour.subtract(BigDecimal.valueOf(9));
-                    statisticsVO.setOvertime(overTime);
+                        BigDecimal overTime = hour.subtract(BigDecimal.valueOf(9));
+                        if (overTime.compareTo(BigDecimal.ZERO) < 0) {
+                            statisticsVO.setClockInStatus(ClockInStatusEnum.EARLY.getValue());
+                        } else {
+                            statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
+                        }
+                        statisticsVO.setOvertime(overTime);
+                        /**
+                         * 如果上班时间为8：30- 9：30 之间，则下班时间减去上班时间 计算工时
+                         */
+                    } else if (statisticsVO.getClockInStartDate().after(whiteCollarFlexTime1) && statisticsVO.getClockInStartDate().before(whiteCollarFlexTime2)) {
+                        BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), statisticsVO.getClockInEndDate());
 
+                        BigDecimal overTime = hour.subtract(BigDecimal.valueOf(9));
+                        if (overTime.compareTo(BigDecimal.ZERO) < 0) {
+                            statisticsVO.setClockInStatus(ClockInStatusEnum.EARLY.getValue());
+                        } else {
+                            statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
+                        }
+                        statisticsVO.setOvertime(overTime);
+                        /**
+                         * 上班时间晚于9：30 则为迟到
+                         */
+                    } else {
+                        statisticsVO.setClockInStatus(ClockInStatusEnum.LATE.getValue());
+                        BigDecimal hour = getWorkingHours(statisticsVO.getClockInStartDate(), statisticsVO.getClockInEndDate());
+
+                        BigDecimal overTime = hour.subtract(BigDecimal.valueOf(9));
+                        statisticsVO.setOvertime(overTime);
+
+                    }
                 }
+
                 /**
                  * 如果上班时间或下班时间为空，则为打卡异常，不计算当天工时；
                  */
             } else {
-                statisticsVO.setClockInStatus(1);
+                if(isHoliday){
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.REST.getValue());
+                }else{
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
+                }
             }
             /**
-             * 工人工时计算
+             * 工人工时计算, 如果是周末或者加假日  全天都算加班
              */
-        } else if (statisticsVO.getType() == 3) {
+        } else if (EmpTypeEnum.WORKER.eq(statisticsVO.getType())) {
             if (statisticsVO.getClockInStartDate() == null || statisticsVO.getClockInEndDate() == null) {
-                statisticsVO.setClockInStatus(1);
+                statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
                 return;
             }
             //0点班
@@ -241,7 +263,10 @@ public class StatisticsManager {
              */
             if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date1)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date1, 1))) {
                 if (statisticsVO.getClockInStartDate().compareTo(date2) >= 0) {
-                    statisticsVO.setClockInStatus(0)
+                    if(isHoliday){
+                        statisticsVO.setOvertime(BigDecimal.valueOf(8));
+                    }
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
                             .setSubsidy(true);
                 }
                 /**
@@ -249,17 +274,27 @@ public class StatisticsManager {
                  */
             } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date2)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date2, 1))) {
                 if ((statisticsVO.getClockInEndDate().compareTo(date3) >= 0) && statisticsVO.getClockInEndDate().before(getOneHourAfter(date3))) {
-                    statisticsVO.setClockInStatus(0);
+                    if(isHoliday){
+                        statisticsVO.setOvertime(BigDecimal.valueOf(8));
+                    }
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
                 } else if (statisticsVO.getClockInEndDate().compareTo(date4) >= 0) {
-                    statisticsVO.setClockInStatus(0)
-                            .setOvertime(BigDecimal.valueOf(3.5));
+                    if(isHoliday){
+                        statisticsVO.setOvertime(BigDecimal.valueOf(11.5));
+                    }else{
+                        statisticsVO.setOvertime(BigDecimal.valueOf(3.5));
+                    }
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
                 }
                 /**
                  * 16点上班，0点正常下班则考勤正常
                  */
             } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date3)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date3, 1))) {
                 if (statisticsVO.getClockInStartDate().compareTo(getHourAfter(date3, 8)) >= 0) {
-                    statisticsVO.setClockInStatus(0)
+                    if(isHoliday){
+                        statisticsVO.setOvertime(BigDecimal.valueOf(8));
+                    }
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
                             .setSubsidy(true);
                 }
                 /**
@@ -267,15 +302,23 @@ public class StatisticsManager {
                  */
             } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date4)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date4, 1))) {
                 if (statisticsVO.getClockInEndDate().compareTo(getHourAfter(date4, 12)) >= 0) {
-                    statisticsVO.setOvertime(BigDecimal.valueOf(4))
-                            .setClockInStatus(0)
+                    if(isHoliday){
+                        statisticsVO.setOvertime(BigDecimal.valueOf(8));
+                    }else{
+                        statisticsVO.setOvertime(BigDecimal.valueOf(4));
+                    }
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
                             .setSubsidy(true);
                 }
                 /**
                  * 其他情况均算考勤异常，交由人工处理
                  */
             } else {
-                statisticsVO.setClockInStatus(1);
+                if(isHoliday){
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.REST.getValue());
+                }else{
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
+                }
             }
         }
 
