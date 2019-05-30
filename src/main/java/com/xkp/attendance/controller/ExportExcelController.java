@@ -6,6 +6,8 @@ import com.xkp.attendance.VO.StatisticsVO;
 import com.xkp.attendance.VO.TitleEntity;
 import com.xkp.attendance.entity.Employee;
 import com.xkp.attendance.manager.StatisticsManager;
+import com.xkp.attendance.model.enums.ClockInStatusEnum;
+import com.xkp.attendance.model.enums.HolidayEnum;
 import com.xkp.attendance.utils.APIHelper;
 import com.xkp.attendance.utils.DateUtil;
 import com.xkp.attendance.utils.excel.ExcelTool;
@@ -82,7 +84,7 @@ public class ExportExcelController {
         String title = date + "考勤记录";
 
         // 获取所有员工当月的考勤信息
-        Map<String, Map<Employee, StatisticsVO>> stringMapMap = statisticsManager.checkClockInOfOneDay(date);
+        Map<String, Map<Employee, StatisticsVO>> stringMapMap = statisticsManager.checkClockInOfOneDay(date, type);
 
 
         // 排序
@@ -102,6 +104,7 @@ public class ExportExcelController {
         int i = 1;
         List<AttendanceDataExcel> oneUserList;
         List<AttendanceDataExcel> oneDayUserList;
+        AttendanceDataExcel attendanceDataExcel;
         List<Map<String, String>> rowList = new ArrayList<>();
         for (Map.Entry<String, List<AttendanceDataExcel>> map : userMap.entrySet()) {
 
@@ -113,11 +116,21 @@ public class ExportExcelController {
             BigDecimal OT_weekend = BigDecimal.ZERO;
             // 节假日加班
             BigDecimal OT_holiday = BigDecimal.ZERO;
+            // 应出勤
+            int day = 0;
+            // 实际出勤
+            int acctually = 0;
+
 
             Map m = new HashMap<String, String>();
             oneUserList = map.getValue();
             m.put("no", i);
             m.put("username", oneUserList.get(0).getUsername());
+            m.put("payLevel", "薪资等级");
+            m.put("cnName", "中文名称");
+            m.put("costCenter", "成本中心");
+            m.put("BasicWage", "基本工资");
+            m.put("salary", "月薪");
             Map<String, List<AttendanceDataExcel>> dateMap = oneUserList.stream().collect(Collectors.groupingBy(AttendanceDataExcel::getClockInDate));
             for (Map.Entry<String, Map<Employee, StatisticsVO>> mm : listMap.entrySet()) {
                 oneDayUserList = dateMap.get(mm.getKey());
@@ -125,19 +138,35 @@ public class ExportExcelController {
                     m.put("clockInStatusName" + mm.getKey(), "缺勤");
                 } else {
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
-                    allOverTime = allOverTime.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                    attendanceDataExcel = oneDayUserList.get(0);
+                    BigDecimal overtime = attendanceDataExcel.getOvertime();
+                    if (overtime != null && overtime.compareTo(BigDecimal.ZERO) == 1) {
+                        allOverTime = allOverTime.add(overtime);
 
-                    // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
-                    int n = APIHelper.holidayType(DateUtil.parseDate(mm.getKey()));
-                    if (n == 0) {
-                        OT_normanl = OT_normanl.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                        // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
+                        int n = APIHelper.holidayType(DateUtil.parseDate(mm.getKey()));
+                        if (n == HolidayEnum.WORKDAY.getValue()) {
+                            OT_normanl = OT_normanl.add(overtime);
+                        }
+                        if (n == HolidayEnum.WEEKEND.getValue()) {
+                            OT_weekend = OT_weekend.add(overtime);
+                        }
+                        if (n == HolidayEnum.HOLIDAY.getValue()) {
+                            OT_holiday = OT_holiday.add(overtime);
+                        }
                     }
-                    if (n == 1) {
-                        OT_weekend = OT_weekend.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+
+                    // 应出勤
+                    if (!ClockInStatusEnum.REST.getValue().equals(attendanceDataExcel.getClockInStatus())) {
+                        day++;
                     }
-                    if (n == 2) {
-                        OT_holiday = OT_holiday.add(oneDayUserList.get(0).getOvertime() == null ? BigDecimal.ZERO : oneDayUserList.get(0).getOvertime());
+                    // 实际出勤
+                    if (ClockInStatusEnum.NORMAL.getValue().equals(attendanceDataExcel.getClockInStatus())
+                            || ClockInStatusEnum.LATE.getValue().equals(attendanceDataExcel.getClockInStatus())
+                            || ClockInStatusEnum.EARLY.getValue().equals(attendanceDataExcel.getClockInStatus())) {
+                        acctually++;
                     }
+
 
                 }
             }
@@ -145,6 +174,8 @@ public class ExportExcelController {
             m.put("OT_normanl", OT_normanl);
             m.put("OT_weekend", OT_weekend);
             m.put("OT_holiday", OT_holiday);
+            m.put("day", day);
+            m.put("acctually", acctually);
             rowList.add(m);
             i++;
         }
@@ -172,6 +203,28 @@ public class ExportExcelController {
         titleEntity0 = new TitleEntity("2", "0", "姓名", "");
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("2_1", "2", "name", "username");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("21", "0", "中文名", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("21_1", "21", "cnName", "cnName");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("211", "0", "成本中心", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("211_1", "211", "costCenter", "costCenter");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("22", "0", "应出勤", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("22_1", "22", "Day", "day");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("221", "0", "实际出勤", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("221_1", "221", "Acctually", "acctually");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("222", "0", "薪资等级", "payLevel");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("223", "0", "基本工资", "BasicWage");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("224", "0", "月薪", "salary");
         titleList.add(titleEntity0);
         for (Map.Entry<String, Map<Employee, StatisticsVO>> m : listMap.entrySet()) {
             titleEntity0 = new TitleEntity(m.getKey(), "0", m.getKey(), "");

@@ -416,6 +416,24 @@ public abstract class DateUtil {
     }
 
 
+    /**
+     * 获取每个月最多多少天
+     *
+     * @param source yyyyMM
+     * @return
+     */
+    public static int getActualMaximum(String source) {
+        SimpleDateFormat format = new SimpleDateFormat("yyyyM");
+        try {
+            Date date = format.parse(source);
+            Calendar calendar = new GregorianCalendar();
+            calendar.setTime(date);
+            return calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 
 
 
