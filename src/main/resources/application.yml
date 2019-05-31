@@ -35,4 +35,4 @@ mybatis:
 multipart:
   max-file-size: 10MB #单个文件大小
   max-request-size: 200MB #总上传的数据大小
-  location-temp-url: /Users/xiaoli/tmp/
+  location-temp-url: D:/
