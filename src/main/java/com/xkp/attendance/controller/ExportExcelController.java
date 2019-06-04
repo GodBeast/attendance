@@ -81,7 +81,7 @@ public class ExportExcelController {
     public void exportFailureBillExcel1(@PathVariable(value = "date") Integer date,
                                         @PathVariable(value = "type") Integer type) throws Exception {
         logger.debug("开始导出月份[{}]的考勤记录", date);
-        String title = date + "考勤记录";
+        String title = date.toString() + type.toString() +"考勤记录";
 
         // 获取所有员工当月的考勤信息
         Map<String, Map<Employee, StatisticsVO>> stringMapMap = statisticsManager.checkClockInOfOneDay(date, type);

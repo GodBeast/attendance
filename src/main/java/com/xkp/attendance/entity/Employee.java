@@ -31,18 +31,23 @@ public class Employee {
     /**
      * 薪资等级
      */
+    @Column(name = "payLevel")
     private Integer payLevel;
 
+    @Column(name = "fullName")
     private String fullName;
 
+    @Column(name = "cnName")
     private String cnName;
 
+    @Column(name = "costCenter")
     private String costCenter;
 
     /**
      * 基本工资
      */
-    private BigDecimal BasicWage;
+    @Column(name = "basicWage")
+    private BigDecimal basicWage;
 
     /**
      * 月薪

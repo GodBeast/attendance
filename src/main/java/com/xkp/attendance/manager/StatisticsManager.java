@@ -62,35 +62,35 @@ public class StatisticsManager {
                         excel.setClockInStartDate(DateUtil.formatDate(statisticsVO.getClockInStartDate()));
                         // 考勤状态:0正常；1，缺卡，2：迟到 3:早退
                         excel.setClockInStatus(statisticsVO.getClockInStatus());
-                        if (ClockInStatusEnum.NORMAL.getValue() == statisticsVO.getClockInStatus()) {
+                        if (ClockInStatusEnum.NORMAL.getValue().equals(statisticsVO.getClockInStatus())) {
                             excel.setClockInStatusName(ClockInStatusEnum.NORMAL.getDescription());
                         }
-                        if (ClockInStatusEnum.LACK.getValue() == statisticsVO.getClockInStatus()) {
+                        if (ClockInStatusEnum.LACK.getValue().equals(statisticsVO.getClockInStatus())) {
                             excel.setClockInStatusName(ClockInStatusEnum.LACK.getDescription());
                         }
-                        if (ClockInStatusEnum.LATE.getValue() == statisticsVO.getClockInStatus()) {
+                        if (ClockInStatusEnum.LATE.getValue().equals(statisticsVO.getClockInStatus())) {
                             excel.setClockInStatusName(ClockInStatusEnum.LATE.getDescription());
                         }
-                        if (ClockInStatusEnum.EARLY.getValue() == statisticsVO.getClockInStatus()) {
+                        if (ClockInStatusEnum.EARLY.getValue().equals(statisticsVO.getClockInStatus())) {
                             excel.setClockInStatusName(ClockInStatusEnum.EARLY.getDescription());
                         }
-                        if (ClockInStatusEnum.REST.getValue() == statisticsVO.getClockInStatus()) {
+                        if (ClockInStatusEnum.REST.getValue().equals(statisticsVO.getClockInStatus())) {
                             excel.setClockInStatusName(ClockInStatusEnum.REST.getDescription());
                         }
 
                         excel.setOvertime(statisticsVO.getOvertime());
                         excel.setSubsidy(statisticsVO.getSubsidy());
                         excel.setType(statisticsVO.getType());
-                        if (EmpTypeEnum.ADMIN.getValue() == type) {
+                        if (EmpTypeEnum.ADMIN.getValue().equals(type)) {
                             excel.setTypeName(EmpTypeEnum.ADMIN.getDescription());
                         }
-                        if (EmpTypeEnum.UNKNOWN.getValue() == type) {
+                        if (EmpTypeEnum.UNKNOWN.getValue().equals(type)) {
                             excel.setTypeName(EmpTypeEnum.UNKNOWN.getDescription());
                         }
-                        if (EmpTypeEnum.WHITECOLLAR.getValue() == type) {
+                        if (EmpTypeEnum.WHITECOLLAR.getValue().equals(type)) {
                             excel.setTypeName(EmpTypeEnum.WHITECOLLAR.getDescription());
                         }
-                        if (EmpTypeEnum.WORKER.getValue() == type) {
+                        if (EmpTypeEnum.WORKER.getValue().equals(type)) {
                             excel.setTypeName(EmpTypeEnum.WORKER.getDescription());
                         }
 
@@ -405,25 +405,25 @@ public class StatisticsManager {
     //白领弹性最早上班时间
     private Date getWhiteCollarFlexTime1(Date date) {
         String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 08:30:00");
-        return DateUtil.parseDate(s1);
+        return DateUtil.parseDate(s1,DateUtil.FULL_FORMAT_PATTERN);
     }
 
     //白领弹性最晚上班时间
     private Date getWhiteCollarFlexTime2(Date date) {
         String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 09:30:00");
-        return DateUtil.parseDate(s1);
+        return DateUtil.parseDate(s1, DateUtil.FULL_FORMAT_PATTERN);
     }
 
     //白领弹性最早下班时间
     private Date getWhiteCollarFlexTime3(Date date) {
         String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 17:30:00");
-        return DateUtil.parseDate(s1);
+        return DateUtil.parseDate(s1, DateUtil.FULL_FORMAT_PATTERN);
     }
 
     //白领弹性最晚下班时间
     private Date getWhiteCollarFlexTime4(Date date) {
         String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 18:30:00");
-        return DateUtil.parseDate(s1);
+        return DateUtil.parseDate(s1, DateUtil.FULL_FORMAT_PATTERN);
     }
 
     //工人上班时间点
@@ -467,7 +467,6 @@ public class StatisticsManager {
 
     //获取上班工时
     private BigDecimal getWorkingHours(Date startTime, Date endTime) {
-        return BigDecimal.valueOf(startTime.getTime() - endTime.getTime()).divide(BigDecimal.valueOf(1000 * 60 * 60)).setScale(1);
+        return BigDecimal.valueOf(endTime.getTime() - startTime.getTime()).divide(BigDecimal.valueOf(1000 * 60 * 60), 1, BigDecimal.ROUND_DOWN);
     }
-
 }
