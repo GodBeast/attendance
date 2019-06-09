@@ -63,6 +63,84 @@ public class AttendanceDataExcel implements Serializable {
      */
     private Boolean subsidy;
 
+    /**
+     * 薪资等级
+     */
+    private Integer payLevel;
+
+    private String fullName;
+
+    private String cnName;
+
+    private String costCenter;
+
+    /**
+     * 基本工资
+     */
+    private BigDecimal basicWage;
+
+    /**
+     * 月薪
+     */
+    private BigDecimal salary;
+
+    private String cost;
+
+    public Integer getPayLevel() {
+        return payLevel;
+    }
+
+    public void setPayLevel(Integer payLevel) {
+        this.payLevel = payLevel;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getCnName() {
+        return cnName;
+    }
+
+    public void setCnName(String cnName) {
+        this.cnName = cnName;
+    }
+
+    public String getCostCenter() {
+        return costCenter;
+    }
+
+    public void setCostCenter(String costCenter) {
+        this.costCenter = costCenter;
+    }
+
+    public BigDecimal getBasicWage() {
+        return basicWage;
+    }
+
+    public void setBasicWage(BigDecimal basicWage) {
+        this.basicWage = basicWage;
+    }
+
+    public BigDecimal getSalary() {
+        return salary;
+    }
+
+    public void setSalary(BigDecimal salary) {
+        this.salary = salary;
+    }
+
+    public String getCost() {
+        return cost;
+    }
+
+    public void setCost(String cost) {
+        this.cost = cost;
+    }
 
     @ExcelField(title = "姓名", align = 2, sort = 1)
     public String getUsername() {

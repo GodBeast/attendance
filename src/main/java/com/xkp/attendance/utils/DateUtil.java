@@ -16,6 +16,11 @@ public abstract class DateUtil {
     public static final String DEFAULT_PATTERN_MONTH = "yyyyMM";
 
     public static final String FULL_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
+    /**
+     * 2019年5月后与2020年节日日期
+     */
+    public static final String FESTIVAL_DATE = "20190501,20190607,20190913,20191001,20200101,20200124,20200125,20200208,20200404,20200501,20200625,20201001,20210101";
     /**
      * 日期类型的默认值
      */
@@ -415,6 +420,49 @@ public abstract class DateUtil {
         return sdw.format(d);
     }
 
+    /**
+     *  
+     *     * 判断当前日期是星期几<br>  
+     *     * <br>  
+     *     * @param pTime 修要判断的时间<br>  
+     *     * @return dayForWeek 判断结果<br>  
+     *     * @Exception 发生异常<br>  
+     *     
+     */
+    public static int dayForWeek(String pTime) throws Exception {
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+        Calendar c = Calendar.getInstance();
+        c.setTime(format.parse(pTime));
+        int dayForWeek = 0;
+        if (c.get(Calendar.DAY_OF_WEEK) == 1) {
+            dayForWeek = 7;
+        } else {
+            dayForWeek = c.get(Calendar.DAY_OF_WEEK) - 1;
+        }
+        return dayForWeek;
+    }
+
+
+
+    /**
+     * 判断所给日期为什么类型,
+     *
+     * @param sdate 日期
+     * @return 0 工作日, 1 周末, 2 节假日, -1 为判断出错
+     */
+    public static int holidayType(String sdate) throws Exception {
+        // 是否节假日
+        if (FESTIVAL_DATE.contains(sdate)) {
+            return 2;
+        }
+        // 是否周末
+        int dayForWeek = dayForWeek(sdate);
+        if (dayForWeek == 6 || dayForWeek == 7) {
+            return 1;
+        }
+        return 0;
+    }
+
 
     /**
      * 获取每个月最多多少天
@@ -434,7 +482,6 @@ public abstract class DateUtil {
         }
         return 0;
     }
-
 
 
 }
