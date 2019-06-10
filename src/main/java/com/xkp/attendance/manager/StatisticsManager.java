@@ -47,16 +47,26 @@ public class StatisticsManager {
         // 获取所有员工当月的考勤信息
         AttendanceDataExcel excel;
         StatisticsVO statisticsVO;
+        Employee employee;
         Map<Employee, StatisticsVO> statisticsVOMap;
         for (Map.Entry<String, Map<Employee, StatisticsVO>> m : map.entrySet()) {
             statisticsVOMap = m.getValue();
             if (statisticsVOMap != null) {
                 for (Map.Entry<Employee, StatisticsVO> statisticsVOEntry : statisticsVOMap.entrySet()) {
                     statisticsVO = statisticsVOEntry.getValue();
+                    employee = statisticsVOEntry.getKey();
                     if (statisticsVO.getType() != null && statisticsVO.getType().equals(type)) {
                         excel = new AttendanceDataExcel();
-                        excel.setUsername(statisticsVOEntry.getKey().getUsername());
-                        excel.setUserCode(statisticsVOEntry.getKey().getUserCode().toString());
+                        excel.setUsername(employee.getUsername());
+                        excel.setUserCode(employee.getUserCode().toString());
+                        excel.setBasicWage(employee.getBasicWage());
+                        excel.setCnName(employee.getCnName());
+                        excel.setCost(employee.getCost());
+                        excel.setCostCenter(employee.getCostCenter());
+                        excel.setFullName(employee.getUsername());
+                        excel.setPayLevel(employee.getPayLevel());
+                        excel.setSalary(employee.getSalary());
+
                         excel.setClockInDate(DateUtil.formatDate(statisticsVO.getClockInDate()));
                         excel.setClockInEndDate(DateUtil.formatDate(statisticsVO.getClockInEndDate()));
                         excel.setClockInStartDate(DateUtil.formatDate(statisticsVO.getClockInStartDate()));
@@ -405,7 +415,7 @@ public class StatisticsManager {
     //白领弹性最早上班时间
     private Date getWhiteCollarFlexTime1(Date date) {
         String s1 = DateUtil.formatDate(date, "yyyy-MM-dd 08:30:00");
-        return DateUtil.parseDate(s1,DateUtil.FULL_FORMAT_PATTERN);
+        return DateUtil.parseDate(s1, DateUtil.FULL_FORMAT_PATTERN);
     }
 
     //白领弹性最晚上班时间

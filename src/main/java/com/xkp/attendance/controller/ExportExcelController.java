@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -85,7 +84,7 @@ public class ExportExcelController {
                                         HttpServletRequest request,
                                         HttpServletResponse response) throws Exception {
         logger.debug("开始导出月份[{}]的考勤记录", date);
-        String title = date.toString() + type.toString() +"考勤记录";
+        String title = date.toString() + type.toString() + "考勤记录";
 
         // 获取所有员工当月的考勤信息
         Map<String, Map<Employee, StatisticsVO>> stringMapMap = statisticsManager.checkClockInOfOneDay(date, type);
@@ -156,7 +155,7 @@ public class ExportExcelController {
             for (Map.Entry<String, Map<Employee, StatisticsVO>> mm : listMap.entrySet()) {
                 oneDayUserList = dateMap.get(mm.getKey());
                 if (CollectionUtils.isEmpty(oneDayUserList)) {
-                    m.put("clockInStatusName" + mm.getKey(), "缺勤");
+                    m.put("clockInStatusName" + mm.getKey(), "");
                 } else {
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
                     attendanceDataExcel = oneDayUserList.get(0);
@@ -177,7 +176,7 @@ public class ExportExcelController {
                             if (bigDecimal == null) {
                                 bigDecimal = BigDecimal.ZERO;
                             }
-                            OT_normanl_map.put(key, bigDecimal.add(OT_normanl));
+                            OT_normanl_map.put(key, bigDecimal.add(overtime));
 
                         }
                         if (n == HolidayEnum.WEEKEND.getValue()) {
@@ -187,7 +186,7 @@ public class ExportExcelController {
                             if (bigDecimal == null) {
                                 bigDecimal = BigDecimal.ZERO;
                             }
-                            OT_weekend_map.put(key, bigDecimal.add(OT_weekend));
+                            OT_weekend_map.put(key, bigDecimal.add(overtime));
                         }
                         if (n == HolidayEnum.HOLIDAY.getValue()) {
                             OT_holiday = OT_holiday.add(overtime);
@@ -196,7 +195,7 @@ public class ExportExcelController {
                             if (bigDecimal == null) {
                                 bigDecimal = BigDecimal.ZERO;
                             }
-                            OT_holiday_map.put(key, bigDecimal.add(OT_holiday));
+                            OT_holiday_map.put(key, bigDecimal.add(overtime));
                         }
 
                         if (dayForWeek == 7) {
@@ -248,6 +247,8 @@ public class ExportExcelController {
         ExcelTool excelTool = new ExcelTool(title, 20, 20);
         List<Column> titleData = excelTool.columnTransformer(titleList, "t_id", "t_pid", "t_content", "t_fielName", "0");
         excelTool.exportExcel(titleData, rowList, request, response, true, true);
+
+        logger.debug("导出月份[{}]的考勤记录结束", date);
     }
 
     /**

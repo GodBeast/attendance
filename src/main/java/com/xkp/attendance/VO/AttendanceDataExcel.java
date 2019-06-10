@@ -66,7 +66,7 @@ public class AttendanceDataExcel implements Serializable {
     /**
      * 薪资等级
      */
-    private Integer payLevel;
+    private String payLevel;
 
     private String fullName;
 
@@ -86,11 +86,11 @@ public class AttendanceDataExcel implements Serializable {
 
     private String cost;
 
-    public Integer getPayLevel() {
+    public String getPayLevel() {
         return payLevel;
     }
 
-    public void setPayLevel(Integer payLevel) {
+    public void setPayLevel(String payLevel) {
         this.payLevel = payLevel;
     }
 
