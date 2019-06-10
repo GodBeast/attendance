@@ -32,10 +32,7 @@ public class Employee {
      * 薪资等级
      */
     @Column(name = "payLevel")
-    private Integer payLevel;
-
-    @Column(name = "fullName")
-    private String fullName;
+    private String payLevel;
 
     @Column(name = "cnName")
     private String cnName;
