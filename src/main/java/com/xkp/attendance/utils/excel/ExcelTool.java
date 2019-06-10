@@ -1,6 +1,7 @@
 package com.xkp.attendance.utils.excel;
 
 import com.xkp.attendance.VO.Column;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.*;
@@ -8,8 +9,11 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.RegionUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -187,6 +191,21 @@ public class ExcelTool<T> {
     }
 
     /**
+     * 客户端导出excel
+     * @param listTpamscolumn
+     * @param datas
+     * @param request
+     * @param response
+     * @param flag
+     * @param rowFlag
+     * @throws Exception
+     */
+    public void exportExcel(List<Column> listTpamscolumn, List<T> datas, HttpServletRequest request, HttpServletResponse response, boolean flag, boolean rowFlag) throws Exception {
+        splitDataToSheets(datas, listTpamscolumn, flag, rowFlag);
+        export(this.workbook, response, request, this.title);
+    }
+
+    /**
      * 返回workbook
      *
      * @param listTpamscolumn 表头数据
@@ -239,7 +258,7 @@ public class ExcelTool<T> {
      *
      * @param data            行内数据
      * @param listTpamscolumn 表头数据
-     * @param flag            只输出表头数据
+     * @param flag            只输出表头数据atten
      * @param rowFlag         输出展示数据的结构(表头下面行的数据)
      * @throws Exception
      */
@@ -334,7 +353,7 @@ public class ExcelTool<T> {
      * @param workbook
      * @return
      */
-    private InputStream save(HSSFWorkbook workbook) {
+    private InputStream save (HSSFWorkbook workbook) throws IOException{
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try {
             workbook.write(bos);
@@ -343,6 +362,31 @@ public class ExcelTool<T> {
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);
+        }finally {
+            if(bos != null){
+                bos.close();
+            }
+        }
+    }
+
+    /**
+     * 此方法适合web导出excel
+     *
+     * @param workbook
+     * @return
+     */
+    private void export(HSSFWorkbook workbook, HttpServletResponse response, HttpServletRequest request, String fileName) throws IOException{
+        setResponse(response, request, fileName);
+        OutputStream out = response.getOutputStream();
+        try {
+            workbook.write(response.getOutputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }finally {
+            if(out != null){
+                out.close();
+            }
         }
     }
 
@@ -370,6 +414,22 @@ public class ExcelTool<T> {
             if (null != fOut) fOut.close();
         } catch (Exception e1) {
         }
+    }
+
+    public void setResponse(HttpServletResponse response, HttpServletRequest request, String fileName) throws UnsupportedEncodingException {
+        response.reset();
+        final String userAgent = request.getHeader("USER-AGENT");
+        String finalFileName = null;
+        if(StringUtils.contains(userAgent, "MSIE")){//IE浏览器
+            finalFileName = URLEncoder.encode(fileName, "UTF8");
+        }else if(StringUtils.contains(userAgent, "Mozilla")){//google,火狐浏览器
+            finalFileName = new String(fileName.getBytes(), "ISO8859-1");
+        }else{
+            finalFileName = URLEncoder.encode(fileName,"UTF8");//其他浏览器
+        }
+
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + finalFileName + "\"");//这里设置一下让浏览器弹出下载提示框，而不是直接在浏览器中打开
+        response.setContentType("application/vnd.ms-excel");
     }
 
     /**

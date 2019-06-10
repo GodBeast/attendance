@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -79,7 +81,9 @@ public class ExportExcelController {
     @GetMapping(value = "/exportExcel/{date}/{type}")
     @ResponseBody
     public void exportFailureBillExcel1(@PathVariable(value = "date") Integer date,
-                                        @PathVariable(value = "type") Integer type) throws Exception {
+                                        @PathVariable(value = "type") Integer type,
+                                        HttpServletRequest request,
+                                        HttpServletResponse response) throws Exception {
         logger.debug("开始导出月份[{}]的考勤记录", date);
         String title = date.toString() + type.toString() +"考勤记录";
 
@@ -139,6 +143,7 @@ public class ExportExcelController {
             Map m = new HashMap<String, String>();
             oneUserList = map.getValue();
             m.put("no", i);
+            m.put("userCode", oneUserList.get(0).getUserCode());
             m.put("username", oneUserList.get(0).getUsername());
             m.put("payLevel", oneUserList.get(0).getPayLevel());
             m.put("cnName", oneUserList.get(0).getCnName());
@@ -242,9 +247,7 @@ public class ExportExcelController {
 
         ExcelTool excelTool = new ExcelTool(title, 20, 20);
         List<Column> titleData = excelTool.columnTransformer(titleList, "t_id", "t_pid", "t_content", "t_fielName", "0");
-        excelTool.exportExcel(titleData, rowList, tmpLocation + title + ".xls", true, true);
-
-        logger.debug("导出月份[{}]的考勤记录结束", date);
+        excelTool.exportExcel(titleData, rowList, request, response, true, true);
     }
 
     /**
