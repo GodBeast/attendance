@@ -84,7 +84,7 @@ public class ExportExcelController {
                                         HttpServletRequest request,
                                         HttpServletResponse response) throws Exception {
         logger.debug("开始导出月份[{}]的考勤记录", date);
-        String title = date.toString() + type.toString() + "考勤记录";
+        String title = date.toString() + type.toString() +"考勤记录.xls";
 
         // 获取所有员工当月的考勤信息
         Map<String, Map<Employee, StatisticsVO>> stringMapMap = statisticsManager.checkClockInOfOneDay(date, type);
@@ -136,7 +136,7 @@ public class ExportExcelController {
             // 应出勤
             int day = 0;
             // 实际出勤
-            int acctually = 0;
+            int actually = 0;
 
 
             Map m = new HashMap<String, String>();
@@ -158,6 +158,8 @@ public class ExportExcelController {
                     m.put("clockInStatusName" + mm.getKey(), "");
                 } else {
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
+                    m.put("startTime" + mm.getKey(), oneDayUserList.get(0).getClockInStartDate());
+                    m.put("endTime" + mm.getKey(), oneDayUserList.get(0).getClockInEndDate());
                     attendanceDataExcel = oneDayUserList.get(0);
                     // 加班时长
                     BigDecimal overtime = attendanceDataExcel.getOvertime();
@@ -211,7 +213,7 @@ public class ExportExcelController {
                     if (ClockInStatusEnum.NORMAL.getValue().equals(attendanceDataExcel.getClockInStatus())
                             || ClockInStatusEnum.LATE.getValue().equals(attendanceDataExcel.getClockInStatus())
                             || ClockInStatusEnum.EARLY.getValue().equals(attendanceDataExcel.getClockInStatus())) {
-                        acctually++;
+                        actually++;
                     }
 
 
@@ -230,7 +232,7 @@ public class ExportExcelController {
             m.put("OT_weekend", OT_weekend);
             m.put("OT_holiday", OT_holiday);
             m.put("day", day);
-            m.put("acctually", acctually);
+            m.put("actually", actually);
 
             // 获取每周总加班时间与加班费
             Map<Integer, Map<String, BigDecimal>> everyWeekOverTime = everyWeekOverTime(getWeekNums(listMap), basicWage, OT_normanl_map, OT_weekend_map, OT_holiday_map);
@@ -368,7 +370,7 @@ public class ExportExcelController {
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("221", "0", "实际出勤", "");
         titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("221_1", "221", "Acctually", "acctually");
+        titleEntity0 = new TitleEntity("221_1", "221", "Actually", "actually");
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("222", "0", "薪资等级", "payLevel");
         titleList.add(titleEntity0);
@@ -420,6 +422,11 @@ public class ExportExcelController {
             // 星期几
             String weekDay = DateUtil.getWeekday(m.getKey());
             titleEntity0 = new TitleEntity(m.getKey() + weekDay, m.getKey(), weekDay, "clockInStatusName" + m.getKey());
+            titleList.add(titleEntity0);
+
+            titleEntity0 = new TitleEntity(m.getKey() + "startTime", m.getKey(), "上班打卡时间", "startTime" + m.getKey());
+            titleList.add(titleEntity0);
+            titleEntity0 = new TitleEntity(m.getKey() + "endTime", m.getKey(), "下班打卡时间", "endTime" + m.getKey());
             titleList.add(titleEntity0);
         }
 

@@ -68,8 +68,8 @@ public class StatisticsManager {
                         excel.setSalary(employee.getSalary());
 
                         excel.setClockInDate(DateUtil.formatDate(statisticsVO.getClockInDate()));
-                        excel.setClockInEndDate(DateUtil.formatDate(statisticsVO.getClockInEndDate()));
-                        excel.setClockInStartDate(DateUtil.formatDate(statisticsVO.getClockInStartDate()));
+                        excel.setClockInEndDate(DateUtil.formatDate(statisticsVO.getClockInEndDate(), DateUtil.FULL_FORMAT_PATTERN));
+                        excel.setClockInStartDate(DateUtil.formatDate(statisticsVO.getClockInStartDate(), DateUtil.FULL_FORMAT_PATTERN));
                         // 考勤状态:0正常；1，缺卡，2：迟到 3:早退
                         excel.setClockInStatus(statisticsVO.getClockInStatus());
                         if (ClockInStatusEnum.NORMAL.getValue().equals(statisticsVO.getClockInStatus())) {
@@ -132,11 +132,9 @@ public class StatisticsManager {
 
         //循环每一天
         dates.stream().forEach(x -> {
-//            Date x = DateUtil.parseDate("2019-05-25 00:00:00", DateUtil.FULL_FORMAT_PATTERN);
             Map<String, Optional<ClockIn>> employStartTime = getEmployStartTime(x);
 
             //查出一天中，所有人的上班打卡数据
-            //starMap.put(x, getEmployStartTime(x, 1));
             Map<Employee, StatisticsVO> empStatistics = new HashMap<>(employeeList.size());
             if (employStartTime.size() > 0) {
                 for (Employee employee : employeeList) {
@@ -274,18 +272,23 @@ public class StatisticsManager {
              * 0点班，8点下班，考勤正常
              */
             if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date1)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date1, 1))) {
-                if (statisticsVO.getClockInStartDate().compareTo(date2) >= 0) {
+                if (statisticsVO.getClockInEndDate().compareTo(date2) >= 0) {
                     if (isHoliday) {
                         statisticsVO.setOvertime(BigDecimal.valueOf(8));
                     }
                     statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
                             .setSubsidy(true);
+                }else{
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.EARLY.getValue())
+                            .setSubsidy(true);
                 }
                 /**
-                 * 8点班，判断4点正常下班还是八点下班 （区分两班作息还是三班作息），并算上加班工时
+                 * 8点班，判断4点半正常下班还是八点下班 （区分两班作息还是三班作息），并算上加班工时
+                 *
+                 * 三班倒其实是4点正常下班，但是与正常工时 4点半下班的无法区分，所以统一按四点半计算下班，有三班倒误算为早退的，由人工核对
                  */
             } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date2)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date2, 1))) {
-                if ((statisticsVO.getClockInEndDate().compareTo(date3) >= 0) && statisticsVO.getClockInEndDate().before(getOneHourAfter(date3))) {
+                if ((statisticsVO.getClockInEndDate().compareTo(DateUtil.addMins(date3, 30)) >= 0) && statisticsVO.getClockInEndDate().before(DateUtil.addMins(date3, 90))) {
                     if (isHoliday) {
                         statisticsVO.setOvertime(BigDecimal.valueOf(8));
                     }
@@ -297,17 +300,22 @@ public class StatisticsManager {
                         statisticsVO.setOvertime(BigDecimal.valueOf(3.5));
                     }
                     statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
+                }else{
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.EARLY.getValue());
                 }
                 /**
                  * 16点上班，0点正常下班则考勤正常
                  */
             } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date3)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date3, 1))) {
-                if (statisticsVO.getClockInStartDate().compareTo(getHourAfter(date3, 8)) >= 0) {
+                if (statisticsVO.getClockInEndDate().compareTo(getHourAfter(date3, 8)) >= 0) {
                     if (isHoliday) {
                         statisticsVO.setOvertime(BigDecimal.valueOf(8));
                     }
                     statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
                             .setSubsidy(true);
+                }else{
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.EARLY.getValue())
+                    .setSubsidy(true);
                 }
                 /**
                  * 20点上班为两班倒工作制，次日八点之后下班则为正常考勤
@@ -320,6 +328,9 @@ public class StatisticsManager {
                         statisticsVO.setOvertime(BigDecimal.valueOf(4));
                     }
                     statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue())
+                            .setSubsidy(true);
+                }else{
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.EARLY.getValue())
                             .setSubsidy(true);
                 }
                 /**
