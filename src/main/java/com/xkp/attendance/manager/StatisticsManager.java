@@ -14,8 +14,10 @@ import com.xkp.attendance.utils.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import sun.applet.Main;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -409,9 +411,6 @@ public class StatisticsManager {
     }
 
     private List<Date> getEveryDayByMonth(Integer year, Integer month, Integer employType) {
-        if (employType == 2) {
-            return DateUtil.dateSplit(getStartDateOfMonth(year, month + 1, 1), getEndDateOfMonth(year, month, DateUtil.getActualMaximum(year.toString().concat(month.toString()))));
-        }
         return DateUtil.dateSplit(getStartDateOfMonth(year, month, 26), getEndDateOfMonth(year, month, 25));
     }
 
@@ -488,6 +487,7 @@ public class StatisticsManager {
 
     //获取上班工时
     private BigDecimal getWorkingHours(Date startTime, Date endTime) {
-        return BigDecimal.valueOf(endTime.getTime() - startTime.getTime()).divide(BigDecimal.valueOf(1000 * 60 * 60), 1, BigDecimal.ROUND_DOWN);
+        return BigDecimal.valueOf(endTime.getTime() - startTime.getTime()).divide(BigDecimal.valueOf(1000 * 60 * 60), 1, RoundingMode.DOWN).divide(BigDecimal.valueOf(0.5), 0, RoundingMode.DOWN).multiply(BigDecimal.valueOf(0.5));
     }
+
 }

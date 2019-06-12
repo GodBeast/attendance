@@ -125,8 +125,6 @@ public class ExportExcelController {
             Map<Integer, BigDecimal> OT_weekend_map = new HashMap<>();
             // 每周节假日加班
             Map<Integer, BigDecimal> OT_holiday_map = new HashMap<>();
-            // 月薪
-            BigDecimal salary;
             // 平时加班费用
             BigDecimal normanl_pay;
             // 周末加班费用
@@ -137,6 +135,9 @@ public class ExportExcelController {
             int day = 0;
             // 实际出勤
             int actually = 0;
+            // 每周正常上班打卡天数
+            Map<Integer, Integer> workDay_map = new HashMap<>();
+
 
 
             Map m = new HashMap<String, String>();
@@ -147,30 +148,45 @@ public class ExportExcelController {
             m.put("payLevel", oneUserList.get(0).getPayLevel());
             m.put("cnName", oneUserList.get(0).getCnName());
             m.put("costCenter", oneUserList.get(0).getCostCenter());
+            // 基本工资
             BigDecimal basicWage = (oneUserList.get(0).getBasicWage() == null ? BigDecimal.ZERO : oneUserList.get(0).getBasicWage());
+            // 月薪
+            BigDecimal salary = (oneUserList.get(0).getSalary() == null ? BigDecimal.ZERO : oneUserList.get(0).getSalary());
             m.put("BasicWage", basicWage);
             Map<String, List<AttendanceDataExcel>> dateMap = oneUserList.stream().collect(Collectors.groupingBy(AttendanceDataExcel::getClockInDate));
 
             Integer key = 1;
             for (Map.Entry<String, Map<Employee, StatisticsVO>> mm : listMap.entrySet()) {
+
+                int dayForWeek = DateUtil.dayForWeek(mm.getKey());
                 oneDayUserList = dateMap.get(mm.getKey());
-                if (CollectionUtils.isEmpty(oneDayUserList)) {
-                    m.put("clockInStatusName" + mm.getKey(), "");
-                } else {
+                if (!CollectionUtils.isEmpty(oneDayUserList)){
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
                     m.put("startTime" + mm.getKey(), oneDayUserList.get(0).getClockInStartDate());
                     m.put("endTime" + mm.getKey(), oneDayUserList.get(0).getClockInEndDate());
                     attendanceDataExcel = oneDayUserList.get(0);
+
+                    // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
+                    int n = DateUtil.holidayType(mm.getKey());
+
+                    if (n == HolidayEnum.WORKDAY.getValue()) {
+                        // 考勤状态:0正常；1，缺卡，2：迟到 3:早退 4:休息日
+                        if (oneDayUserList.get(0).getClockInStatus() != null
+                                && !ClockInStatusEnum.EARLY.getValue().equals(oneDayUserList.get(0).getClockInStatus())
+                                && !ClockInStatusEnum.REST.getValue().equals(oneDayUserList.get(0).getClockInStatus())){
+                            Integer workDay = workDay_map.get(key);
+                            if (workDay == null) {
+                                workDay = 1;
+                            }
+                            workDay_map.put(key, workDay+1);
+                        }
+                    }
+
                     // 加班时长
                     BigDecimal overtime = attendanceDataExcel.getOvertime();
-
                     if (overtime != null && overtime.compareTo(BigDecimal.ZERO) == 1) {
                         allOverTime = allOverTime.add(overtime);
 
-                        int dayForWeek = DateUtil.dayForWeek(mm.getKey());
-
-                        // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
-                        int n = DateUtil.holidayType(mm.getKey());
                         if (n == HolidayEnum.WORKDAY.getValue()) {
                             OT_normanl = OT_normanl.add(overtime);
 
@@ -200,11 +216,7 @@ public class ExportExcelController {
                             OT_holiday_map.put(key, bigDecimal.add(overtime));
                         }
 
-                        if (dayForWeek == 7) {
-                            key++;
-                        }
                     }
-
                     // 应出勤
                     if (!ClockInStatusEnum.REST.getValue().equals(attendanceDataExcel.getClockInStatus())) {
                         day++;
@@ -215,14 +227,20 @@ public class ExportExcelController {
                             || ClockInStatusEnum.EARLY.getValue().equals(attendanceDataExcel.getClockInStatus())) {
                         actually++;
                     }
-
-
                 }
+
+
+                if (dayForWeek == 7) {
+                    key++;
+                }
+
+
+
             }
             normanl_pay = overtimePay(basicWage, 0, OT_normanl);
             weekend_pay = overtimePay(basicWage, 1, OT_weekend);
             holiday_pay = overtimePay(basicWage, 2, OT_holiday);
-            salary = basicWage.add(normanl_pay).add(weekend_pay).add(holiday_pay);
+//            salary = basicWage.add(normanl_pay).add(weekend_pay).add(holiday_pay);
             m.put("normanl_pay", normanl_pay);
             m.put("weekend_pay", weekend_pay);
             m.put("holiday_pay", holiday_pay);
@@ -235,11 +253,12 @@ public class ExportExcelController {
             m.put("actually", actually);
 
             // 获取每周总加班时间与加班费
-            Map<Integer, Map<String, BigDecimal>> everyWeekOverTime = everyWeekOverTime(getWeekNums(listMap), basicWage, OT_normanl_map, OT_weekend_map, OT_holiday_map);
+            Map<Integer, Map<String, BigDecimal>> everyWeekOverTime = everyWeekOverTime(getWeekNums(listMap), salary,basicWage, OT_normanl_map, OT_weekend_map, OT_holiday_map,workDay_map);
             for (Map.Entry<Integer, Map<String, BigDecimal>> mapEntry : everyWeekOverTime.entrySet()) {
 
                 m.put("overTime" + mapEntry.getKey(), mapEntry.getValue().get("overTime") == null ? BigDecimal.ZERO : mapEntry.getValue().get("overTime"));
                 m.put("overPay" + mapEntry.getKey(), mapEntry.getValue().get("overPay") == null ? BigDecimal.ZERO : mapEntry.getValue().get("overPay"));
+                m.put("allPay" + mapEntry.getKey(), mapEntry.getValue().get("allPay") == null ? BigDecimal.ZERO : mapEntry.getValue().get("allPay"));
             }
 
             rowList.add(m);
@@ -257,17 +276,21 @@ public class ExportExcelController {
      * 获取每周总加班时间与加班费
      *
      * @param key
+     * @param salary 月薪
      * @param basicWage      基本工资
      * @param OT_normanl_map 每周平时加班时间
      * @param OT_weekend_map 每周周末加班时间
      * @param OT_holiday_map 每周节假日加班时间
+     * @param workDay_map    每周正常上班天数
      * @return <第几周，<总加班时间，总加班费用>></>
      */
     private Map<Integer, Map<String, BigDecimal>> everyWeekOverTime(Integer key,
+                                                                    BigDecimal salary,
                                                                     BigDecimal basicWage,
                                                                     Map<Integer, BigDecimal> OT_normanl_map,
                                                                     Map<Integer, BigDecimal> OT_weekend_map,
-                                                                    Map<Integer, BigDecimal> OT_holiday_map) {
+                                                                    Map<Integer, BigDecimal> OT_holiday_map,
+                                                                    Map<Integer, Integer> workDay_map) {
         Map<Integer, Map<String, BigDecimal>> mapMap = new HashMap<>();
         for (int i = 1; i <= key; i++) {
             Map<String, BigDecimal> map = new HashMap<>();
@@ -278,13 +301,20 @@ public class ExportExcelController {
             BigDecimal OT_weekend = (OT_weekend_map.get(i) == null ? BigDecimal.ZERO : OT_weekend_map.get(i));
             // 节假日加班
             BigDecimal OT_holiday = (OT_holiday_map.get(i) == null ? BigDecimal.ZERO : OT_holiday_map.get(i));
+            Integer workDay = (workDay_map.get(i) == null ? 0 : workDay_map.get(i));
 
             BigDecimal overTime = OT_normanl.add(OT_weekend).add(OT_holiday);
             BigDecimal overTimePay = overtimePay(basicWage, 0, OT_normanl).
                     add(overtimePay(basicWage, 1, OT_weekend)).
                     add(overtimePay(basicWage, 2, OT_holiday));
+            // 每周加班工资
             map.put("overPay", overTimePay);
+            // 每周加班时长
             map.put("overTime", overTime);
+            // 正常每小时工资
+            BigDecimal timePay = salary.divide(new BigDecimal("21.75"), 2, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal("8"), 2, BigDecimal.ROUND_HALF_UP);
+            // 每周总工资
+            map.put("allPay",overTimePay.add(timePay.multiply(new BigDecimal(workDay*8)).setScale(2, BigDecimal.ROUND_HALF_UP)));
 
             mapMap.put(i, map);
         }
@@ -352,7 +382,7 @@ public class ExportExcelController {
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("1_1", "1", "NO", "no");
         titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("2", "0", "姓名", "");
+        titleEntity0 = new TitleEntity("2", "0", "英文名", "");
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("2_1", "2", "name", "username");
         titleList.add(titleEntity0);
@@ -360,46 +390,47 @@ public class ExportExcelController {
         titleList.add(titleEntity0);
         titleEntity0 = new TitleEntity("21_1", "21", "cnName", "cnName");
         titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("211", "0", "成本中心", "");
+        titleEntity0 = new TitleEntity("23", "0", "工号", "");
         titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("211_1", "211", "costCenter", "costCenter");
+        titleEntity0 = new TitleEntity("23_1", "23", "userCode", "userCode");
         titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("22", "0", "应出勤", "");
-        titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("22_1", "22", "Day", "day");
-        titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("221", "0", "实际出勤", "");
-        titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("221_1", "221", "Actually", "actually");
-        titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("222", "0", "薪资等级", "payLevel");
-        titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("223", "0", "基本工资", "BasicWage");
-        titleList.add(titleEntity0);
-        titleEntity0 = new TitleEntity("224", "0", "月薪", "salary");
-        titleList.add(titleEntity0);
+        if(type == 3) {
+            titleEntity0 = new TitleEntity("211", "0", "成本中心", "");
+            titleList.add(titleEntity0);
+            titleEntity0 = new TitleEntity("211_1", "211", "costCenter", "costCenter");
+            titleList.add(titleEntity0);
+        }
+
+        if(type == 3) {
+            titleEntity0 = new TitleEntity("222", "0", "薪资等级", "payLevel");
+            titleList.add(titleEntity0);
+            titleEntity0 = new TitleEntity("223", "0", "基本工资", "BasicWage");
+            titleList.add(titleEntity0);
+            titleEntity0 = new TitleEntity("224", "0", "月薪", "salary");
+            titleList.add(titleEntity0);
+        }
 
         if (type == 3) {
-            titleEntity0 = new TitleEntity("225", "0", "平常加班工资", "normanl_pay");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("226", "0", "周末加班工资", "weekend_pay");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("227", "0", "节假日加班工资", "holiday_pay");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("3", "0", "总加班小时数", "allOverTime");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("4", "0", "平时加班", "");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("4_1", "4", "OT_normanl", "OT_normanl");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("5", "0", "周末加班", "");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("5_1", "5", "OT_weekend", "OT_weekend");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("6", "0", "节假日加班", "");
-            titleList.add(titleEntity0);
-            titleEntity0 = new TitleEntity("6_1", "6", "OT_holiday", "OT_holiday");
-            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("225", "0", "平常加班工资", "normanl_pay");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("226", "0", "周末加班工资", "weekend_pay");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("227", "0", "节假日加班工资", "holiday_pay");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("3", "0", "总加班小时数", "allOverTime");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("4", "0", "平时加班", "");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("4_1", "4", "OT_normanl", "OT_normanl");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("5", "0", "周末加班", "");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("5_1", "5", "OT_weekend", "OT_weekend");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("6", "0", "节假日加班", "");
+//            titleList.add(titleEntity0);
+//            titleEntity0 = new TitleEntity("6_1", "6", "OT_holiday", "OT_holiday");
+//            titleList.add(titleEntity0);
 
             // 获取当月有几周
             Integer weekNums = getWeekNums(listMap);
@@ -408,13 +439,14 @@ public class ExportExcelController {
 
                 titleEntity0 = new TitleEntity("week" + i, "0", "第" + i + "周", "");
                 titleList.add(titleEntity0);
-                titleEntity0 = new TitleEntity("overTime" + i, "week" + i, "加班时长", "overTime" + i);
+                titleEntity0 = new TitleEntity("wages" + i, "week" + i, "周工资", "allPay" + i);
                 titleList.add(titleEntity0);
-                titleEntity0 = new TitleEntity("overPay" + i, "week" + i, "加班工资", "overPay" + i);
-                titleList.add(titleEntity0);
+//                titleEntity0 = new TitleEntity("overTime" + i, "week" + i, "加班时长", "overTime" + i);
+//                titleList.add(titleEntity0);
+//                titleEntity0 = new TitleEntity("overPay" + i, "week" + i, "加班工资", "overPay" + i);
+//                titleList.add(titleEntity0);
             }
         }
-
 
         for (Map.Entry<String, Map<Employee, StatisticsVO>> m : listMap.entrySet()) {
             titleEntity0 = new TitleEntity(m.getKey(), "0", m.getKey(), "");
@@ -429,6 +461,29 @@ public class ExportExcelController {
             titleEntity0 = new TitleEntity(m.getKey() + "endTime", m.getKey(), "下班打卡时间", "endTime" + m.getKey());
             titleList.add(titleEntity0);
         }
+
+        titleEntity0 = new TitleEntity("22", "0", "应出勤", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("22_1", "22", "Day", "day");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("221", "0", "实际出勤", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("221_1", "221", "Actually", "actually");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("3", "0", "总加班小时数", "allOverTime");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("4", "0", "平时加班", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("4_1", "4", "OT_normanl", "OT_normanl");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("5", "0", "周末加班", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("5_1", "5", "OT_weekend", "OT_weekend");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("6", "0", "节假日加班", "");
+        titleList.add(titleEntity0);
+        titleEntity0 = new TitleEntity("6_1", "6", "OT_holiday", "OT_holiday");
+        titleList.add(titleEntity0);
 
         return titleList;
     }
