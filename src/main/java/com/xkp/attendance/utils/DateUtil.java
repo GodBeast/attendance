@@ -483,5 +483,14 @@ public abstract class DateUtil {
         return 0;
     }
 
+    public static void main(String[] args) {
+        try {
+            System.out.println(holidayType("20190607"));
+        }catch (Exception e){
+
+        }
+
+    }
+
 
 }

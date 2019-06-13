@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -160,23 +161,25 @@ public class ExportExcelController {
 
                 int dayForWeek = DateUtil.dayForWeek(mm.getKey());
                 oneDayUserList = dateMap.get(mm.getKey());
+                // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
+                int n = DateUtil.holidayType(mm.getKey());
+                //计算应出勤数
+                if (n == HolidayEnum.WORKDAY.getValue()) {
+                    day++;
+                }
                 if (!CollectionUtils.isEmpty(oneDayUserList)){
                     m.put("clockInStatusName" + mm.getKey(), oneDayUserList.get(0).getClockInStatusName());
                     m.put("startTime" + mm.getKey(), oneDayUserList.get(0).getClockInStartDate());
                     m.put("endTime" + mm.getKey(), oneDayUserList.get(0).getClockInEndDate());
                     attendanceDataExcel = oneDayUserList.get(0);
-
-                    // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
-                    int n = DateUtil.holidayType(mm.getKey());
-
                     if (n == HolidayEnum.WORKDAY.getValue()) {
                         // 考勤状态:0正常；1，缺卡，2：迟到 3:早退 4:休息日
                         if (oneDayUserList.get(0).getClockInStatus() != null
-                                && !ClockInStatusEnum.EARLY.getValue().equals(oneDayUserList.get(0).getClockInStatus())
+                                && !ClockInStatusEnum.LACK.getValue().equals(oneDayUserList.get(0).getClockInStatus())
                                 && !ClockInStatusEnum.REST.getValue().equals(oneDayUserList.get(0).getClockInStatus())){
                             Integer workDay = workDay_map.get(key);
                             if (workDay == null) {
-                                workDay = 1;
+                                workDay = 0;
                             }
                             workDay_map.put(key, workDay+1);
                         }
@@ -218,9 +221,9 @@ public class ExportExcelController {
 
                     }
                     // 应出勤
-                    if (!ClockInStatusEnum.REST.getValue().equals(attendanceDataExcel.getClockInStatus())) {
-                        day++;
-                    }
+//                    if (!ClockInStatusEnum.REST.getValue().equals(attendanceDataExcel.getClockInStatus())) {
+//                        day++;
+//                    }
                     // 实际出勤
                     if (ClockInStatusEnum.NORMAL.getValue().equals(attendanceDataExcel.getClockInStatus())
                             || ClockInStatusEnum.LATE.getValue().equals(attendanceDataExcel.getClockInStatus())
@@ -312,7 +315,7 @@ public class ExportExcelController {
             // 每周加班时长
             map.put("overTime", overTime);
             // 正常每小时工资
-            BigDecimal timePay = salary.divide(new BigDecimal("21.75"), 2, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal("8"), 2, BigDecimal.ROUND_HALF_UP);
+            BigDecimal timePay = salary.divide(new BigDecimal("21.75"), 4, RoundingMode.HALF_UP).divide(new BigDecimal("8"), 2, BigDecimal.ROUND_HALF_UP);
             // 每周总工资
             map.put("allPay",overTimePay.add(timePay.multiply(new BigDecimal(workDay*8)).setScale(2, BigDecimal.ROUND_HALF_UP)));
 

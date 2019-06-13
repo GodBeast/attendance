@@ -14,6 +14,7 @@ public enum ClockInStatusEnum {
     LATE(2, "迟到"),
     EARLY(3, "早退"),
     REST(4, "休息日"),
+    EXCEPTIONAL(9, "异常"),
     ;
 
     private Integer value;
