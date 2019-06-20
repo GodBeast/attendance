@@ -2,10 +2,11 @@ package com.xkp.attendance.manager;
 
 import com.xkp.attendance.VO.AttendanceDataExcel;
 import com.xkp.attendance.VO.StatisticsVO;
-import com.xkp.attendance.controller.ExportExcelController;
 import com.xkp.attendance.entity.ClockIn;
 import com.xkp.attendance.entity.Employee;
+import com.xkp.attendance.entity.Holiday;
 import com.xkp.attendance.mapper.EmployeeMapper;
+import com.xkp.attendance.mapper.HolidayMapper;
 import com.xkp.attendance.model.enums.ClockInStatusEnum;
 import com.xkp.attendance.model.enums.EmpTypeEnum;
 import com.xkp.attendance.model.enums.HolidayEnum;
@@ -36,6 +37,9 @@ public class StatisticsManager {
 
     @Autowired
     private EmployeeMapper employeeMapper;
+
+    @Autowired
+    private HolidayMapper holidayMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(StatisticsManager.class);
 
@@ -195,10 +199,12 @@ public class StatisticsManager {
      * @param statisticsVO
      */
     private void getClockInStatus(StatisticsVO statisticsVO) throws Exception{
+        List<Holiday> holidays = holidayMapper.selectAll();
+
         /**
          * 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
          */
-        int n = DateUtil.holidayType(DateUtil.formatDate(statisticsVO.getClockInDate()));
+        int n = DateUtil.holidayType(holidays, DateUtil.formatDate(statisticsVO.getClockInDate()));
         boolean isHoliday = false;
 
         if (HolidayEnum.HOLIDAY.eq(n) || HolidayEnum.WEEKEND.eq(n)) {
@@ -207,6 +213,22 @@ public class StatisticsManager {
 
         //白领的情况
         if (EmpTypeEnum.WHITECOLLAR.eq(statisticsVO.getType())) {
+            if(statisticsVO.getClockInStartDate() == null && statisticsVO.getClockInEndDate() == null){
+                if (isHoliday) {
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.REST.getValue());
+                } else {
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
+                }
+                return;
+            }
+            if(statisticsVO.getClockInStartDate() == null || statisticsVO.getClockInEndDate() == null){
+                if (isHoliday) {
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.REST.getValue());
+                } else {
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.EXCEPTIONAL.getValue());
+                }
+                return;
+            }
             /**
              * 如果上班时间或下班时间不为空，则计算工时
              */
@@ -263,19 +285,17 @@ public class StatisticsManager {
                 /**
                  * 如果上班时间或下班时间为空，则为打卡异常，不计算当天工时；
                  */
-            } else {
-                if (isHoliday) {
-                    statisticsVO.setClockInStatus(ClockInStatusEnum.REST.getValue());
-                } else {
-                    statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
-                }
             }
             /**
              * 工人工时计算, 如果是周末或者加假日  全天都算加班
              */
         } else if (EmpTypeEnum.WORKER.eq(statisticsVO.getType())) {
             if (statisticsVO.getClockInStartDate() == null && statisticsVO.getClockInEndDate() == null) {
-                statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
+                if (isHoliday) {
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.REST.getValue());
+                } else {
+                    statisticsVO.setClockInStatus(ClockInStatusEnum.LACK.getValue());
+                }
                 return;
             }
 
@@ -311,16 +331,12 @@ public class StatisticsManager {
                  * 三班倒其实是4点正常下班，但是与正常工时 4点半下班的无法区分，所以统一按四点半计算下班，有三班倒误算为早退的，由人工核对
                  */
             } else if (statisticsVO.getClockInStartDate().after(getOneHourBefore(date2)) && statisticsVO.getClockInStartDate().before(DateUtil.addMins(date2, 5))) {
-                if ((statisticsVO.getClockInEndDate().compareTo(DateUtil.addMins(date3, 30)) >= 0) && statisticsVO.getClockInEndDate().before(DateUtil.addMins(date3, 90))) {
+                if ((statisticsVO.getClockInEndDate().compareTo(DateUtil.addMins(date3, 30)) >= 0)) {
+                    BigDecimal overTime = getWorkingHours(DateUtil.addMins(date3, 30), statisticsVO.getClockInEndDate());
                     if (isHoliday) {
-                        statisticsVO.setOvertime(BigDecimal.valueOf(8));
-                    }
-                    statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
-                } else if (statisticsVO.getClockInEndDate().compareTo(date4) >= 0) {
-                    if (isHoliday) {
-                        statisticsVO.setOvertime(BigDecimal.valueOf(11.5));
-                    } else {
-                        statisticsVO.setOvertime(BigDecimal.valueOf(3.5));
+                        statisticsVO.setOvertime(BigDecimal.valueOf(8).add(overTime));
+                    }else{
+                        statisticsVO.setOvertime(overTime);
                     }
                     statisticsVO.setClockInStatus(ClockInStatusEnum.NORMAL.getValue());
                 }else{

@@ -1,11 +1,14 @@
 package com.xkp.attendance.utils;
 
+import com.xkp.attendance.entity.Holiday;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 有关日期处理的工具类。
@@ -454,6 +457,29 @@ public abstract class DateUtil {
         // 是否节假日
         if (FESTIVAL_DATE.contains(sdate)) {
             return 2;
+        }
+        // 是否周末
+        int dayForWeek = dayForWeek(sdate);
+        if (dayForWeek == 6 || dayForWeek == 7) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * 判断所给日期为什么类型,
+     *
+     *
+     * @param sdate 日期
+     * @return 0 工作日, 1 周末, 2 节假日, -1 为判断出错
+     */
+    public static int holidayType(List<Holiday> holidays, String sdate) throws Exception {
+        if(!CollectionUtils.isEmpty(holidays)){
+            Map<String, Integer> map = holidays.stream().collect(Collectors.toMap(x -> DateUtil.formatDate(x.getHolidayDate()), y -> y.getType()));
+            // 是否节假日
+            if (map.containsKey(sdate)) {
+                return map.get(sdate);
+            }
         }
         // 是否周末
         int dayForWeek = dayForWeek(sdate);

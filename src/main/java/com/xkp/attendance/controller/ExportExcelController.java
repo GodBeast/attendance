@@ -5,7 +5,9 @@ import com.xkp.attendance.VO.Column;
 import com.xkp.attendance.VO.StatisticsVO;
 import com.xkp.attendance.VO.TitleEntity;
 import com.xkp.attendance.entity.Employee;
+import com.xkp.attendance.entity.Holiday;
 import com.xkp.attendance.manager.StatisticsManager;
+import com.xkp.attendance.mapper.HolidayMapper;
 import com.xkp.attendance.model.enums.ClockInStatusEnum;
 import com.xkp.attendance.model.enums.HolidayEnum;
 import com.xkp.attendance.utils.DateUtil;
@@ -42,6 +44,9 @@ public class ExportExcelController {
 
     @Autowired
     StatisticsManager statisticsManager;
+
+    @Autowired
+    HolidayMapper holidayMapper;
 
     @Value("${multipart.location-temp-url}")
     private String tmpLocation;
@@ -158,13 +163,13 @@ public class ExportExcelController {
 
             Integer key = 1;
             for (Map.Entry<String, Map<Employee, StatisticsVO>> mm : listMap.entrySet()) {
-
+                List<Holiday> holidays = holidayMapper.selectAll();
                 int dayForWeek = DateUtil.dayForWeek(mm.getKey());
                 oneDayUserList = dateMap.get(mm.getKey());
-                // 0 工作日, 1 休息日, 2 节假日, -1 为判断出错
-                int n = DateUtil.holidayType(mm.getKey());
+                // 0 工作日, 1 休息日, 2 节假日, 9 补班 -1 为判断出错
+                int n = DateUtil.holidayType(holidays, mm.getKey());
                 //计算应出勤数
-                if (n == HolidayEnum.WORKDAY.getValue()) {
+                if (n == HolidayEnum.WORKDAY.getValue() || n == HolidayEnum.AFTERCLASS.getValue()) {
                     day++;
                 }
                 if (!CollectionUtils.isEmpty(oneDayUserList)){
@@ -172,7 +177,7 @@ public class ExportExcelController {
                     m.put("startTime" + mm.getKey(), oneDayUserList.get(0).getClockInStartDate());
                     m.put("endTime" + mm.getKey(), oneDayUserList.get(0).getClockInEndDate());
                     attendanceDataExcel = oneDayUserList.get(0);
-                    if (n == HolidayEnum.WORKDAY.getValue()) {
+                    if (n == HolidayEnum.WORKDAY.getValue() || n == HolidayEnum.AFTERCLASS.getValue()) {
                         // 考勤状态:0正常；1，缺卡，2：迟到 3:早退 4:休息日
                         if (oneDayUserList.get(0).getClockInStatus() != null
                                 && !ClockInStatusEnum.LACK.getValue().equals(oneDayUserList.get(0).getClockInStatus())
@@ -190,7 +195,7 @@ public class ExportExcelController {
                     if (overtime != null && overtime.compareTo(BigDecimal.ZERO) == 1) {
                         allOverTime = allOverTime.add(overtime);
 
-                        if (n == HolidayEnum.WORKDAY.getValue()) {
+                        if (n == HolidayEnum.WORKDAY.getValue() || n == HolidayEnum.AFTERCLASS.getValue()) {
                             OT_normanl = OT_normanl.add(overtime);
 
                             BigDecimal bigDecimal = OT_normanl_map.get(key);

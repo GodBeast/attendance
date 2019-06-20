@@ -12,6 +12,7 @@ public enum HolidayEnum {
     WORKDAY(0, "工作日"),
     WEEKEND(1, "周末"),
     HOLIDAY(2, "节假日"),
+    AFTERCLASS(9, "补班"),
     UNKNOWN(-1, "未知"),
     ;
 
